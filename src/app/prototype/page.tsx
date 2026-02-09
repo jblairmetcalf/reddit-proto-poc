@@ -10,7 +10,20 @@ import { VARIANT_PRESETS, type VariantConfig } from "@/lib/variants";
 import type { PrototypePost, PrototypeComment, PrototypeSubreddit } from "@/lib/types/prototype";
 
 const prototypeStyles = `
-  .prototype-page {
+  /* Full-bleed mode (mobile / PWA) */
+  .prototype-page--fullbleed {
+    min-height: 100dvh;
+    background: var(--reddit-bg-surface, #1A1A1B);
+  }
+  .prototype-page--fullbleed .prototype-content {
+    width: 100%;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Device frame mode (desktop) */
+  .prototype-page--framed {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -136,6 +149,7 @@ const prototypeStyles = `
   .proto-toolbar-spacer {
     height: 44px;
   }
+
 `;
 
 const VARIANT_DOT_COLORS: Record<string, string> = {
@@ -207,10 +221,31 @@ function PrototypeToolbar({
   );
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function check() {
+      const narrow = window.matchMedia("(max-width: 768px)").matches;
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true);
+      setIsMobile(narrow || standalone);
+    }
+    check();
+    const mql = window.matchMedia("(max-width: 768px)");
+    mql.addEventListener("change", check);
+    return () => mql.removeEventListener("change", check);
+  }, []);
+
+  return isMobile;
+}
+
 function PrototypeContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const previewVariant = searchParams.get("variant");
+  const isMobile = useIsMobile();
   const [participantId, setParticipantId] = useState<string | undefined>();
   const [studyId, setStudyId] = useState<string | undefined>();
   const [variantConfig, setVariantConfig] = useState<VariantConfig | undefined>();
@@ -311,8 +346,8 @@ function PrototypeContent() {
     return (
       <>
         <style>{prototypeStyles}</style>
-        <div className="prototype-page">
-          <div className="prototype-frame" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className={isMobile ? "prototype-page--fullbleed" : "prototype-page--framed"}>
+          <div className={isMobile ? "prototype-content" : "prototype-frame"} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ color: "var(--reddit-orange, #FF4500)", fontSize: 18, fontWeight: 600 }}>
               Loading...
             </div>
@@ -332,10 +367,9 @@ function PrototypeContent() {
       {variantConfig && variantConfig.id !== "default" && isParticipant && (
         <div className="variant-badge">{variantConfig.label}</div>
       )}
-      <div className="prototype-page">
-        <div className="prototype-frame">
-          {/* Notch */}
-          <div className="prototype-notch" />
+      <div className={isMobile ? "prototype-page--fullbleed" : "prototype-page--framed"}>
+        <div className={isMobile ? "prototype-content" : "prototype-frame"}>
+          {!isMobile && <div className="prototype-notch" />}
           <RedditMobile
             posts={posts}
             subreddits={subreddits}
