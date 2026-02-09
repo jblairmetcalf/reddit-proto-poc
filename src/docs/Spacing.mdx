@@ -1,0 +1,86 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Spacing" />
+
+# Spacing
+
+Spacing tokens provide a consistent scale for padding, margin, and gap values across the prototype.
+
+---
+
+## Scale
+
+<div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+  {[
+    { token: "--reddit-space-1", value: "4px", label: "1" },
+    { token: "--reddit-space-2", value: "6px", label: "2" },
+    { token: "--reddit-space-3", value: "8px", label: "3" },
+    { token: "--reddit-space-4", value: "10px", label: "4" },
+    { token: "--reddit-space-5", value: "12px", label: "5" },
+    { token: "--reddit-space-6", value: "16px", label: "6" },
+    { token: "--reddit-space-7", value: "20px", label: "7" },
+    { token: "--reddit-space-8", value: "24px", label: "8" },
+  ].map((s) => (
+    <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <code style={{ fontSize: 12, width: 160, flexShrink: 0, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{s.token}</code>
+      <div style={{ width: s.value, height: 24, background: "var(--reddit-orange, #FF4500)", borderRadius: 4, flexShrink: 0 }} />
+      <span style={{ fontSize: 12, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{s.value}</span>
+    </div>
+  ))}
+</div>
+
+---
+
+## Border Radius
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 16, marginTop: 16 }}>
+  {[
+    { token: "--reddit-radius-sm", value: "4px" },
+    { token: "--reddit-radius-md", value: "8px" },
+    { token: "--reddit-radius-lg", value: "12px" },
+    { token: "--reddit-radius-xl", value: "16px" },
+    { token: "--reddit-radius-pill", value: "20px" },
+    { token: "--reddit-radius-full", value: "50%" },
+    { token: "--reddit-radius-frame", value: "32px" },
+    { token: "--reddit-radius-device", value: "40px" },
+  ].map((r) => (
+    <div key={r.token} style={{ textAlign: "center" }}>
+      <div style={{
+        width: 80,
+        height: 80,
+        background: "var(--reddit-bg-surface, #fff)",
+        border: "2px solid var(--reddit-orange, #FF4500)",
+        borderRadius: r.value,
+        margin: "0 auto",
+      }} />
+      <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>{r.value}</p>
+      <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{r.token}</code>
+    </div>
+  ))}
+</div>
+
+---
+
+## Component Padding Examples
+
+| Component | Padding | Token(s) Used |
+|-----------|---------|---------------|
+| Post Card | 8px 16px | `space-3` + `space-6` |
+| Bottom Nav | 8px 0 12px 0 | `space-3` + `space-5` |
+| Community Item | 12px | `space-5` |
+| Notification Item | 12px | `space-5` |
+| Profile View | 20px 16px | `space-7` + `space-6` |
+| Action Buttons | 6px 8px | `space-2` + `space-3` |
+| Vote Section | 4px 8px | `space-1` + `space-3` |
+
+---
+
+## Layout Dimensions
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--reddit-frame-width` | 390px | Mobile frame width (iPhone 14) |
+| `--reddit-frame-height` | 844px | Mobile frame height |
+| `--reddit-notch-width` | 150px | Dynamic island width |
+| `--reddit-notch-height` | 28px | Dynamic island height |
+| `--reddit-bottom-nav-height` | 70px | Bottom navigation bar |

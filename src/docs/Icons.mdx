@@ -1,0 +1,166 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import {
+  Home, Menu, Bell, User, Search, Plus, X, ChevronUp, ChevronLeft,
+  MessageCircle, Share2, MoreHorizontal, Award, Bookmark, Eye,
+  TrendingUp, Send, ArrowRight, Settings, Camera, Link, Image,
+} from "lucide-react";
+
+<Meta title="Design Tokens/Icons" />
+
+# Icons
+
+All icons use [Lucide React](https://lucide.dev/) with consistent sizing tokens.
+
+---
+
+## Icon Sizes
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 24, marginTop: 16, textAlign: "center" }}>
+  <div>
+    <div style={{ padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 12, border: "1px solid var(--reddit-border, #EDEFF1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Home size={16} color="var(--reddit-text-primary, #1A1A1B)" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>16px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-icon-sm</code>
+  </div>
+  <div>
+    <div style={{ padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 12, border: "1px solid var(--reddit-border, #EDEFF1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Home size={18} color="var(--reddit-text-primary, #1A1A1B)" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>18px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-icon-md</code>
+  </div>
+  <div>
+    <div style={{ padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 12, border: "1px solid var(--reddit-border, #EDEFF1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Home size={20} color="var(--reddit-text-primary, #1A1A1B)" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>20px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-icon-lg</code>
+  </div>
+  <div>
+    <div style={{ padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 12, border: "1px solid var(--reddit-border, #EDEFF1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Home size={24} color="var(--reddit-text-primary, #1A1A1B)" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>24px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-icon-xl</code>
+  </div>
+  <div>
+    <div style={{ padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 12, border: "1px solid var(--reddit-border, #EDEFF1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Home size={48} color="var(--reddit-text-primary, #1A1A1B)" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: "var(--reddit-text-primary, #1A1A1B)" }}>48px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-icon-2xl</code>
+  </div>
+</div>
+
+---
+
+## Avatar Sizes
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, marginTop: 16, textAlign: "center" }}>
+  <div>
+    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--reddit-orange, #FF4500)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+      <User size={16} color="white" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8 }}>32px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-avatar-sm</code>
+  </div>
+  <div>
+    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--reddit-orange, #FF4500)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+      <User size={20} color="white" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8 }}>40px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-avatar-md</code>
+  </div>
+  <div>
+    <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--reddit-orange, #FF4500)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+      <User size={36} color="white" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8 }}>72px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-avatar-lg</code>
+  </div>
+  <div>
+    <div style={{ width: 80, height: 80, borderRadius: "50%", background: "var(--reddit-orange, #FF4500)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+      <User size={48} color="white" />
+    </div>
+    <p style={{ fontSize: 12, fontWeight: 600, marginTop: 8 }}>80px</p>
+    <code style={{ fontSize: 10, color: "var(--reddit-text-secondary, #7C7C7C)" }}>--reddit-avatar-xl</code>
+  </div>
+</div>
+
+---
+
+## Icon Inventory
+
+All icons used across the prototype, organized by context.
+
+### Navigation
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 16, marginTop: 16 }}>
+  {[
+    { Icon: Home, name: "Home" },
+    { Icon: Menu, name: "Menu" },
+    { Icon: Bell, name: "Bell" },
+    { Icon: User, name: "User" },
+    { Icon: Search, name: "Search" },
+    { Icon: Plus, name: "Plus" },
+    { Icon: X, name: "X" },
+    { Icon: ChevronLeft, name: "ChevronLeft" },
+    { Icon: ArrowRight, name: "ArrowRight" },
+  ].map(({ Icon, name }) => (
+    <div key={name} style={{ textAlign: "center", padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 8, border: "1px solid var(--reddit-border, #EDEFF1)" }}>
+      <Icon size={24} color="var(--reddit-text-primary, #1A1A1B)" />
+      <p style={{ fontSize: 11, marginTop: 8, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{name}</p>
+    </div>
+  ))}
+</div>
+
+### Post Actions
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 16, marginTop: 16 }}>
+  {[
+    { Icon: ChevronUp, name: "ChevronUp" },
+    { Icon: MessageCircle, name: "MessageCircle" },
+    { Icon: Share2, name: "Share2" },
+    { Icon: Award, name: "Award" },
+    { Icon: MoreHorizontal, name: "MoreHorizontal" },
+    { Icon: Bookmark, name: "Bookmark" },
+  ].map(({ Icon, name }) => (
+    <div key={name} style={{ textAlign: "center", padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 8, border: "1px solid var(--reddit-border, #EDEFF1)" }}>
+      <Icon size={24} color="var(--reddit-text-primary, #1A1A1B)" />
+      <p style={{ fontSize: 11, marginTop: 8, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{name}</p>
+    </div>
+  ))}
+</div>
+
+### Notifications & Profile
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 16, marginTop: 16 }}>
+  {[
+    { Icon: TrendingUp, name: "TrendingUp" },
+    { Icon: Eye, name: "Eye" },
+    { Icon: Settings, name: "Settings" },
+    { Icon: Send, name: "Send" },
+    { Icon: Camera, name: "Camera" },
+    { Icon: Link, name: "Link" },
+    { Icon: Image, name: "Image" },
+  ].map(({ Icon, name }) => (
+    <div key={name} style={{ textAlign: "center", padding: 16, background: "var(--reddit-bg-surface, #fff)", borderRadius: 8, border: "1px solid var(--reddit-border, #EDEFF1)" }}>
+      <Icon size={24} color="var(--reddit-text-primary, #1A1A1B)" />
+      <p style={{ fontSize: 11, marginTop: 8, color: "var(--reddit-text-secondary, #7C7C7C)" }}>{name}</p>
+    </div>
+  ))}
+</div>
+
+---
+
+## Icon Usage Guidelines
+
+| Context | Size | Token | Color |
+|---------|------|-------|-------|
+| Bottom nav | 24px | `icon-xl` | `--reddit-text-secondary` (inactive) / `--reddit-orange` (active) |
+| Post action buttons | 18px | `icon-md` | `--reddit-text-secondary` |
+| Comment vote arrows | 16px | `icon-sm` | `--reddit-text-secondary` / `--reddit-orange` (upvoted) / `--reddit-periwinkle` (downvoted) |
+| Notification icons | 20px | `icon-lg` | Varies by notification type |
+| Profile avatar | 48px | `icon-2xl` | White (on orange background) |
+| Header actions | 20px | `icon-lg` | `--reddit-text-primary` |

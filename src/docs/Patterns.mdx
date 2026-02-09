@@ -1,0 +1,215 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Patterns" />
+
+# Patterns
+
+Recurring UI patterns and conventions used throughout the Reddit mobile prototype.
+
+---
+
+## Shadows
+
+### Device Frame Shadow
+
+The device frame uses a layered shadow to simulate depth.
+
+<div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+  <div style={{
+    width: 200,
+    height: 120,
+    background: "var(--reddit-bg-surface, #fff)",
+    borderRadius: 32,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.3), 0 0 0 8px #1a1a1a, 0 0 0 10px #2a2a2a",
+  }} />
+</div>
+
+```css
+--reddit-shadow-device: 0 20px 60px rgba(0, 0, 0, 0.3),
+  0 0 0 8px var(--reddit-frame-ring-inner, #1a1a1a),
+  0 0 0 10px var(--reddit-frame-ring-outer, #2a2a2a);
+```
+
+---
+
+## Transitions
+
+All interactive elements use a consistent transition timing.
+
+```css
+--reddit-transition: 150ms ease;
+```
+
+**Applied to:** hover states, active states, tab switches, vote state changes.
+
+---
+
+## Scrollbar
+
+Custom scrollbar styling for the mobile frame.
+
+| Mode | Token | Value |
+|------|-------|-------|
+| Light | `--reddit-scrollbar-thumb` | `rgba(0, 0, 0, 0.2)` |
+| Dark | `--reddit-scrollbar-thumb` | `rgba(255, 255, 255, 0.15)` |
+
+Width: `4px` | Border radius: `4px` | Track: `transparent`
+
+---
+
+## Component Patterns
+
+### Card Pattern
+
+Used by **PostCard**, **CommunityItem**, **NotificationItem**, and **ProfileView stat items**.
+
+<div style={{ padding: 20, background: "var(--reddit-bg-surface, #fff)", border: "1px solid var(--reddit-border, #EDEFF1)", borderRadius: 12, maxWidth: 390, margin: "16px auto" }}>
+  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--reddit-text-primary, #1A1A1B)" }}>Card Title</p>
+  <p style={{ fontSize: 12, color: "var(--reddit-text-secondary, #7C7C7C)", marginTop: 4 }}>Supporting text with metadata</p>
+</div>
+
+```css
+background: var(--reddit-bg-surface);
+border: 1px solid var(--reddit-border);
+border-radius: var(--reddit-radius-lg); /* 12px */
+```
+
+**Hover state:** `background: var(--reddit-bg-elevated); border-color: var(--reddit-orange);`
+
+---
+
+### List Item Pattern
+
+Used by **PostCard** (border-bottom separator) within feed lists.
+
+```css
+background: var(--reddit-bg-surface);
+border-bottom: 1px solid var(--reddit-border);
+padding: 8px 16px;
+```
+
+---
+
+### Button Patterns
+
+#### Primary (CTA)
+
+<div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+  <button style={{ background: "#FF4500", border: "none", color: "white", padding: "8px 16px", borderRadius: 16, fontWeight: 700, fontSize: 12, textTransform: "uppercase", cursor: "pointer" }}>
+    Join
+  </button>
+  <button style={{ background: "#FF4500", border: "none", color: "white", padding: "8px 20px", borderRadius: 20, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+    Create Post
+  </button>
+</div>
+
+```css
+background: var(--reddit-orange);
+color: white;
+border-radius: var(--reddit-radius-pill); /* 20px */
+font-weight: 700;
+```
+
+#### Ghost / Action
+
+<div style={{ display: "flex", gap: 12, marginTop: 16, marginBottom: 16 }}>
+  <button style={{ background: "none", border: "none", color: "#7C7C7C", padding: "6px 8px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+    Share
+  </button>
+  <button style={{ background: "none", border: "none", color: "#7C7C7C", padding: "6px 8px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+    Reply
+  </button>
+</div>
+
+```css
+background: none;
+border: none;
+color: var(--reddit-text-secondary);
+padding: 6px 8px;
+border-radius: var(--reddit-radius-md); /* 8px */
+```
+
+**Hover:** `background: var(--reddit-bg-elevated); color: var(--reddit-text-primary);`
+
+---
+
+### Badge / Flair Pattern
+
+<div style={{ display: "flex", gap: 12, marginTop: 16, marginBottom: 16 }}>
+  <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, textTransform: "uppercase", border: "1px solid #CCCCCC", color: "#7C7C7C" }}>Research</span>
+  <span style={{ background: "#FF4500", color: "white", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>OP</span>
+  <span style={{ background: "rgba(74, 209, 96, 0.2)", color: "#46D160", padding: "4px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Active</span>
+</div>
+
+| Type | Background | Border | Radius |
+|------|-----------|--------|--------|
+| Post Flair | transparent | `--reddit-border-strong` | 12px |
+| OP Badge | `--reddit-orange` | none | 4px |
+| Status Badge | color/20% opacity | none | pill |
+
+---
+
+### Vote Pattern
+
+Vote buttons use a shared pattern across PostCard and CommentThread:
+
+- **Neutral:** `color: var(--reddit-text-secondary)`
+- **Upvoted:** `color: var(--reddit-orange)` (#FF4500)
+- **Downvoted:** `color: var(--reddit-periwinkle)` (#7193FF)
+- **Down arrow:** `transform: rotate(180deg)` on ChevronUp icon
+- **Hover:** `transform: scale(1.2)` (with rotation preserved for down)
+
+---
+
+### Notification Type Colors
+
+| Type | Icon | Icon Color | Background |
+|------|------|-----------|------------|
+| Upvote | ChevronUp | `--reddit-orange` | `--reddit-notif-upvote-bg` |
+| Comment | MessageCircle | `--reddit-periwinkle` | `--reddit-notif-comment-bg` |
+| Award | Award | `--reddit-gold` | `--reddit-notif-award-bg` |
+| Trending | TrendingUp | `--reddit-green` | `--reddit-notif-trending-bg` |
+
+---
+
+## Animation Patterns
+
+### Slide-In (Communities)
+
+```css
+@keyframes communitySlideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+animation: communitySlideIn 300ms ease both;
+```
+
+Staggered with `animation-delay` per item.
+
+### Fade-In (Profile)
+
+```css
+@keyframes profileFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+animation: profileFadeIn 300ms ease;
+```
+
+---
+
+## Dark Mode Implementation
+
+Components use CSS custom properties with fallbacks:
+
+```css
+color: var(--reddit-text-primary, #1A1A1B);
+background: var(--reddit-bg-surface, #FFFFFF);
+```
+
+The theme is controlled via:
+1. `.light` class on `<html>` / `<body>` (explicit light)
+2. `.dark` class on `<html>` / `<body>` (explicit dark)
+3. `@media (prefers-color-scheme: dark)` with `:root:not(.light)` (system preference)
+
+The `.dark` class always takes priority over the media query.

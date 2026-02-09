@@ -1,0 +1,172 @@
+/* Reddit Design Tokens — Light Mode (default) */
+:root,
+.light {
+  /* Brand Colors (invariant across modes) */
+  --reddit-orange: #FF4500;
+  --reddit-orange-hover: #FF5722;
+  --reddit-blue: #0079D3;
+  --reddit-periwinkle: #7193FF;
+  --reddit-green: #46D160;
+  --reddit-gold: #FFD700;
+  --reddit-pink: #FF66AC;
+  --reddit-amber: #FFB000;
+  --reddit-sky: #24A0ED;
+
+  /* Semantic Colors — Light */
+  --reddit-text-primary: #1A1A1B;
+  --reddit-text-secondary: #7C7C7C;
+  --reddit-bg-canvas: #DAE0E6;
+  --reddit-bg-surface: #FFFFFF;
+  --reddit-bg-elevated: #F6F7F8;
+  --reddit-bg-hover: #E9EAEB;
+  --reddit-border: #EDEFF1;
+  --reddit-border-strong: #CCCCCC;
+
+  /* Notification Colors — Light */
+  --reddit-notif-upvote-bg: #FFF4E6;
+  --reddit-notif-upvote-border: #FFDFC4;
+  --reddit-notif-comment-bg: #EBF0FF;
+  --reddit-notif-award-bg: #FFFBEB;
+  --reddit-notif-trending-bg: #ECFDF5;
+
+  /* Scrollbar */
+  --reddit-scrollbar-thumb: rgba(0, 0, 0, 0.2);
+
+  /* Device frame */
+  --reddit-frame-bg: #000000;
+  --reddit-frame-ring-inner: #1a1a1a;
+  --reddit-frame-ring-outer: #2a2a2a;
+
+  color-scheme: light;
+}
+
+/* Reddit Design Tokens — Dark Mode (system preference) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    /* Semantic Colors — Dark */
+    --reddit-text-primary: #D7DADC;
+    --reddit-text-secondary: #818384;
+    --reddit-bg-canvas: #030303;
+    --reddit-bg-surface: #1A1A1B;
+    --reddit-bg-elevated: #272729;
+    --reddit-bg-hover: #2D2D2E;
+    --reddit-border: #343536;
+    --reddit-border-strong: #4F4F51;
+
+    /* Notification Colors — Dark */
+    --reddit-notif-upvote-bg: #3D2200;
+    --reddit-notif-upvote-border: #5C3300;
+    --reddit-notif-comment-bg: #1A1F3D;
+    --reddit-notif-award-bg: #3D3400;
+    --reddit-notif-trending-bg: #0D2818;
+
+    /* Scrollbar */
+    --reddit-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+    /* Device frame */
+    --reddit-frame-bg: #000000;
+    --reddit-frame-ring-inner: #1a1a1a;
+    --reddit-frame-ring-outer: #2a2a2a;
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit .dark class always wins */
+.dark {
+  --reddit-text-primary: #D7DADC;
+  --reddit-text-secondary: #818384;
+  --reddit-bg-canvas: #030303;
+  --reddit-bg-surface: #1A1A1B;
+  --reddit-bg-elevated: #272729;
+  --reddit-bg-hover: #2D2D2E;
+  --reddit-border: #343536;
+  --reddit-border-strong: #4F4F51;
+
+  --reddit-notif-upvote-bg: #3D2200;
+  --reddit-notif-upvote-border: #5C3300;
+  --reddit-notif-comment-bg: #1A1F3D;
+  --reddit-notif-award-bg: #3D3400;
+  --reddit-notif-trending-bg: #0D2818;
+
+  --reddit-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+  color-scheme: dark;
+}
+
+/* ─── Typography ─── */
+:root {
+  --reddit-font-family: 'Reddit Sans', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Font Sizes */
+  --reddit-text-xs: 0.625rem;    /* 10px — nav labels */
+  --reddit-text-sm: 0.75rem;     /* 12px — meta, captions */
+  --reddit-text-base: 0.8125rem; /* 13px — body small */
+  --reddit-text-md: 0.875rem;    /* 14px — body, search, inputs */
+  --reddit-text-lg: 0.9375rem;   /* 15px — section buttons */
+  --reddit-text-xl: 1rem;        /* 16px — post title, headings */
+  --reddit-text-2xl: 1.25rem;    /* 20px — detail title, profile name */
+  --reddit-text-3xl: 1.5rem;     /* 24px — page title */
+
+  /* Line Heights */
+  --reddit-leading-tight: 1rem;      /* 16px */
+  --reddit-leading-snug: 1.125rem;   /* 18px */
+  --reddit-leading-normal: 1.375rem; /* 22px */
+  --reddit-leading-relaxed: 1.5rem;  /* 24px */
+  --reddit-leading-loose: 1.625rem;  /* 26px */
+  --reddit-leading-xl: 1.875rem;     /* 30px */
+
+  /* Font Weights */
+  --reddit-font-normal: 400;
+  --reddit-font-semibold: 600;
+  --reddit-font-bold: 700;
+
+  /* ─── Spacing ─── */
+  --reddit-space-1: 4px;
+  --reddit-space-2: 6px;
+  --reddit-space-3: 8px;
+  --reddit-space-4: 10px;
+  --reddit-space-5: 12px;
+  --reddit-space-6: 16px;
+  --reddit-space-7: 20px;
+  --reddit-space-8: 24px;
+
+  /* ─── Border Radius ─── */
+  --reddit-radius-sm: 4px;
+  --reddit-radius-md: 8px;
+  --reddit-radius-lg: 12px;
+  --reddit-radius-xl: 16px;
+  --reddit-radius-pill: 20px;
+  --reddit-radius-full: 50%;
+  --reddit-radius-frame: 32px;
+  --reddit-radius-device: 40px;
+
+  /* ─── Shadows ─── */
+  --reddit-shadow-device: 0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 0 8px var(--reddit-frame-ring-inner, #1a1a1a),
+    0 0 0 10px var(--reddit-frame-ring-outer, #2a2a2a);
+
+  /* ─── Transitions ─── */
+  --reddit-transition: 150ms ease;
+
+  /* ─── Layout ─── */
+  --reddit-frame-width: 390px;
+  --reddit-frame-height: 844px;
+  --reddit-notch-width: 150px;
+  --reddit-notch-height: 28px;
+  --reddit-bottom-nav-height: 70px;
+
+  /* Icon Sizes */
+  --reddit-icon-sm: 16px;
+  --reddit-icon-md: 18px;
+  --reddit-icon-lg: 20px;
+  --reddit-icon-xl: 24px;
+  --reddit-icon-2xl: 48px;
+
+  /* Avatar Sizes */
+  --reddit-avatar-sm: 32px;
+  --reddit-avatar-md: 40px;
+  --reddit-avatar-lg: 72px;
+  --reddit-avatar-xl: 80px;
+}

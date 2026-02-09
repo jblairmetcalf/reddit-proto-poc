@@ -1,104 +1,206 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import RedditMobile from "@/components/prototype/RedditMobile";
+import { useTracking } from "@/hooks/useTracking";
+import { mapRedditPost, mapRedditComment, mapRedditSubreddit } from "@/lib/reddit-mapper";
+import { VARIANT_PRESETS, type VariantConfig } from "@/lib/variants";
+import type { PrototypePost, PrototypeComment, PrototypeSubreddit } from "@/lib/types/prototype";
 
-const tabs = [
-  { hash: "#home", label: "Home" },
-  { hash: "#notifications", label: "Notifications" },
-  { hash: "#profile", label: "Profile" },
-] as const;
+const prototypeStyles = `
+  .prototype-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--reddit-bg-canvas, #DAE0E6);
+    padding: 40px 20px;
+  }
+  .prototype-frame {
+    width: 100%;
+    max-width: var(--reddit-frame-width, 390px);
+    height: var(--reddit-frame-height, 844px);
+    background: var(--reddit-frame-bg, #000);
+    border-radius: var(--reddit-radius-device, 40px);
+    padding: 12px;
+    box-shadow: var(--reddit-shadow-device);
+    position: relative;
+    overflow: hidden;
+  }
+  .prototype-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--reddit-notch-width, 150px);
+    height: var(--reddit-notch-height, 28px);
+    background: var(--reddit-frame-bg, #000);
+    border-radius: 0 0 20px 20px;
+    z-index: 1000;
+  }
+  .variant-badge {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 9999;
+    pointer-events: none;
+  }
+`;
 
-type Tab = (typeof tabs)[number]["hash"];
+function PrototypeContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const previewVariant = searchParams.get("variant");
+  const [participantId, setParticipantId] = useState<string | undefined>();
+  const [studyId, setStudyId] = useState<string | undefined>();
+  const [variantConfig, setVariantConfig] = useState<VariantConfig | undefined>();
+  const [posts, setPosts] = useState<PrototypePost[] | undefined>();
+  const [subreddits, setSubreddits] = useState<PrototypeSubreddit[] | undefined>();
+  const [loading, setLoading] = useState(true);
+  const { track } = useTracking({ participantId, studyId, variant: variantConfig?.id });
 
-function HomeView() {
-  return (
-    <div>
-      <h2 className="text-xl font-semibold text-white">Home Feed</h2>
-      <p className="mt-2 text-zinc-400">Prototype home feed content goes here.</p>
-    </div>
+  // Verify participant token if present
+  useEffect(() => {
+    if (token) {
+      fetch(`/api/auth/participant?token=${encodeURIComponent(token)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid) {
+            setParticipantId(data.participantId);
+            setStudyId(data.studyId);
+            if (data.prototypeVariant && VARIANT_PRESETS[data.prototypeVariant]) {
+              setVariantConfig(VARIANT_PRESETS[data.prototypeVariant]);
+            }
+            // Bypass auth gate for valid participants
+            sessionStorage.setItem("reddit-proto-auth", "true");
+          }
+        })
+        .catch(console.error);
+    } else if (previewVariant && VARIANT_PRESETS[previewVariant]) {
+      // Researcher preview mode via query param
+      setVariantConfig(VARIANT_PRESETS[previewVariant]);
+    }
+  }, [token, previewVariant]);
+
+  // Fetch Reddit data
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [postsRes, subsRes] = await Promise.all([
+          fetch("/api/reddit?action=popular&limit=25"),
+          fetch("/api/reddit?action=popular_subreddits&limit=15"),
+        ]);
+
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          const mapped = postsData.data.children.map(
+            (c: { data: Parameters<typeof mapRedditPost>[0] }) =>
+              mapRedditPost(c.data)
+          );
+          setPosts(mapped);
+        }
+
+        if (subsRes.ok) {
+          const subsData = await subsRes.json();
+          const mapped = subsData.data.children.map(
+            (c: { data: Parameters<typeof mapRedditSubreddit>[0] }) =>
+              mapRedditSubreddit(c.data)
+          );
+          setSubreddits(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch Reddit data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const handleLoadComments = useCallback(
+    async (
+      subreddit: string,
+      postId: string,
+      sort: string
+    ): Promise<PrototypeComment[]> => {
+      const res = await fetch(
+        `/api/reddit?action=comments&subreddit=${encodeURIComponent(subreddit)}&postId=${encodeURIComponent(postId)}&sort=${sort}`
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      const commentListing = data[1];
+      return commentListing.data.children
+        .filter((c: { kind: string }) => c.kind === "t1")
+        .map((c: { data: Parameters<typeof mapRedditComment>[0] }) =>
+          mapRedditComment(c.data)
+        );
+    },
+    []
   );
-}
 
-function NotificationsView() {
-  return (
-    <div>
-      <h2 className="text-xl font-semibold text-white">Notifications</h2>
-      <p className="mt-2 text-zinc-400">Notification items will appear here.</p>
-    </div>
+  const handleTrack = useCallback(
+    (event: string, data?: Record<string, unknown>) => {
+      track(event as Parameters<typeof track>[0], data);
+    },
+    [track]
   );
-}
 
-function ProfileView() {
+  if (loading) {
+    return (
+      <>
+        <style>{prototypeStyles}</style>
+        <div className="prototype-page">
+          <div className="prototype-frame" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ color: "var(--reddit-orange, #FF4500)", fontSize: 18, fontWeight: 600 }}>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-white">Profile</h2>
-      <p className="mt-2 text-zinc-400">User profile content goes here.</p>
-    </div>
+    <>
+      <style>{prototypeStyles}</style>
+      {variantConfig && variantConfig.id !== "default" && (
+        <div className="variant-badge">{variantConfig.label}</div>
+      )}
+      <div className="prototype-page">
+        <div className="prototype-frame">
+          {/* Notch */}
+          <div className="prototype-notch" />
+          <RedditMobile
+            posts={posts}
+            subreddits={subreddits}
+            onTrack={handleTrack}
+            onLoadComments={handleLoadComments}
+            variantConfig={variantConfig}
+          />
+        </div>
+      </div>
+    </>
   );
 }
 
 export default function PrototypePage() {
-  const [activeTab, setActiveTab] = useState<Tab>("#home");
-
-  useEffect(() => {
-    const hash = window.location.hash as Tab;
-    if (tabs.some((t) => t.hash === hash)) {
-      setActiveTab(hash);
-    } else {
-      window.location.hash = "#home";
-    }
-
-    const onHashChange = () => {
-      const h = window.location.hash as Tab;
-      if (tabs.some((t) => t.hash === h)) {
-        setActiveTab(h);
-      }
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  const navigate = (hash: Tab) => {
-    window.location.hash = hash;
-    setActiveTab(hash);
-  };
-
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
-      <header className="flex items-center gap-4 border-b border-zinc-800 px-6 py-4">
-        <Link
-          href="/"
-          className="text-sm text-zinc-400 hover:text-white transition-colors"
-        >
-          &larr; Dashboard
-        </Link>
-        <h1 className="text-lg font-bold text-white">Prototype</h1>
-      </header>
-
-      <div className="flex flex-1 flex-col">
-        <main className="flex-1 p-6">
-          {activeTab === "#home" && <HomeView />}
-          {activeTab === "#notifications" && <NotificationsView />}
-          {activeTab === "#profile" && <ProfileView />}
-        </main>
-
-        <nav className="sticky bottom-0 flex border-t border-zinc-800 bg-zinc-900">
-          {tabs.map((tab) => (
-            <button
-              key={tab.hash}
-              onClick={() => navigate(tab.hash)}
-              className={`flex-1 py-4 text-center text-sm font-medium transition-colors ${
-                activeTab === tab.hash
-                  ? "text-orange-400 border-t-2 border-orange-400 -mt-px"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-    </div>
+    <Suspense
+      fallback={
+        <div className="prototype-page" style={{ color: "var(--reddit-orange, #FF4500)", fontSize: 18 }}>
+          Loading...
+        </div>
+      }
+    >
+      <PrototypeContent />
+    </Suspense>
   );
 }

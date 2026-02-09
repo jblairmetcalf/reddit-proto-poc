@@ -1,0 +1,252 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Colors" />
+
+# Colors
+
+All colors are defined as CSS custom properties in `src/styles/reddit-tokens.css`. They respond to the theme toolbar (Light / Dark / System) in the Storybook header.
+
+---
+
+## Brand Colors
+
+Brand colors are invariant across light and dark modes.
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginTop: 16 }}>
+  <div>
+    <div style={{ background: "#FF4500", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Reddit Orange</p>
+    <code style={{ fontSize: 11 }}>--reddit-orange</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FF4500</code>
+  </div>
+  <div>
+    <div style={{ background: "#FF5722", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Orange Hover</p>
+    <code style={{ fontSize: 11 }}>--reddit-orange-hover</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FF5722</code>
+  </div>
+  <div>
+    <div style={{ background: "#0079D3", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Reddit Blue</p>
+    <code style={{ fontSize: 11 }}>--reddit-blue</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#0079D3</code>
+  </div>
+  <div>
+    <div style={{ background: "#7193FF", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Periwinkle</p>
+    <code style={{ fontSize: 11 }}>--reddit-periwinkle</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#7193FF</code>
+  </div>
+  <div>
+    <div style={{ background: "#46D160", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Green</p>
+    <code style={{ fontSize: 11 }}>--reddit-green</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#46D160</code>
+  </div>
+  <div>
+    <div style={{ background: "#FFD700", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Gold</p>
+    <code style={{ fontSize: 11 }}>--reddit-gold</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FFD700</code>
+  </div>
+  <div>
+    <div style={{ background: "#FF66AC", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Pink</p>
+    <code style={{ fontSize: 11 }}>--reddit-pink</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FF66AC</code>
+  </div>
+  <div>
+    <div style={{ background: "#FFB000", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Amber</p>
+    <code style={{ fontSize: 11 }}>--reddit-amber</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FFB000</code>
+  </div>
+  <div>
+    <div style={{ background: "#24A0ED", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Sky</p>
+    <code style={{ fontSize: 11 }}>--reddit-sky</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#24A0ED</code>
+  </div>
+</div>
+
+---
+
+## Semantic Colors
+
+These colors change between light and dark mode.
+
+### Light Mode
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginTop: 16 }}>
+  <div>
+    <div style={{ background: "#1A1A1B", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Text Primary</p>
+    <code style={{ fontSize: 11 }}>--reddit-text-primary</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#1A1A1B</code>
+  </div>
+  <div>
+    <div style={{ background: "#7C7C7C", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Text Secondary</p>
+    <code style={{ fontSize: 11 }}>--reddit-text-secondary</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#7C7C7C</code>
+  </div>
+  <div>
+    <div style={{ background: "#DAE0E6", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Canvas</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-canvas</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#DAE0E6</code>
+  </div>
+  <div>
+    <div style={{ background: "#FFFFFF", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.15)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Surface</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-surface</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#FFFFFF</code>
+  </div>
+  <div>
+    <div style={{ background: "#F6F7F8", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Elevated</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-elevated</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#F6F7F8</code>
+  </div>
+  <div>
+    <div style={{ background: "#E9EAEB", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Hover</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-hover</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#E9EAEB</code>
+  </div>
+  <div>
+    <div style={{ background: "#EDEFF1", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Border</p>
+    <code style={{ fontSize: 11 }}>--reddit-border</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#EDEFF1</code>
+  </div>
+  <div>
+    <div style={{ background: "#CCCCCC", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Border Strong</p>
+    <code style={{ fontSize: 11 }}>--reddit-border-strong</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#CCCCCC</code>
+  </div>
+</div>
+
+### Dark Mode
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginTop: 16 }}>
+  <div>
+    <div style={{ background: "#D7DADC", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Text Primary</p>
+    <code style={{ fontSize: 11 }}>--reddit-text-primary</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#D7DADC</code>
+  </div>
+  <div>
+    <div style={{ background: "#818384", height: 64, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Text Secondary</p>
+    <code style={{ fontSize: 11 }}>--reddit-text-secondary</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#818384</code>
+  </div>
+  <div>
+    <div style={{ background: "#030303", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Canvas</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-canvas</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#030303</code>
+  </div>
+  <div>
+    <div style={{ background: "#1A1A1B", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Surface</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-surface</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#1A1A1B</code>
+  </div>
+  <div>
+    <div style={{ background: "#272729", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Elevated</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-elevated</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#272729</code>
+  </div>
+  <div>
+    <div style={{ background: "#2D2D2E", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Background Hover</p>
+    <code style={{ fontSize: 11 }}>--reddit-bg-hover</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#2D2D2E</code>
+  </div>
+  <div>
+    <div style={{ background: "#343536", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Border</p>
+    <code style={{ fontSize: 11 }}>--reddit-border</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#343536</code>
+  </div>
+  <div>
+    <div style={{ background: "#4F4F51", height: 64, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }} />
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Border Strong</p>
+    <code style={{ fontSize: 11 }}>--reddit-border-strong</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>#4F4F51</code>
+  </div>
+</div>
+
+---
+
+## Notification Colors
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, marginTop: 16 }}>
+  <div>
+    <div style={{ display: "flex", height: 64, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" }}>
+      <div style={{ flex: 1, background: "#FFF4E6" }} />
+      <div style={{ flex: 1, background: "#3D2200" }} />
+    </div>
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Upvote Background</p>
+    <code style={{ fontSize: 11 }}>--reddit-notif-upvote-bg</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>Light: #FFF4E6 / Dark: #3D2200</code>
+  </div>
+  <div>
+    <div style={{ display: "flex", height: 64, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" }}>
+      <div style={{ flex: 1, background: "#FFDFC4" }} />
+      <div style={{ flex: 1, background: "#5C3300" }} />
+    </div>
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Upvote Border</p>
+    <code style={{ fontSize: 11 }}>--reddit-notif-upvote-border</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>Light: #FFDFC4 / Dark: #5C3300</code>
+  </div>
+  <div>
+    <div style={{ display: "flex", height: 64, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" }}>
+      <div style={{ flex: 1, background: "#EBF0FF" }} />
+      <div style={{ flex: 1, background: "#1A1F3D" }} />
+    </div>
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Comment Background</p>
+    <code style={{ fontSize: 11 }}>--reddit-notif-comment-bg</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>Light: #EBF0FF / Dark: #1A1F3D</code>
+  </div>
+  <div>
+    <div style={{ display: "flex", height: 64, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" }}>
+      <div style={{ flex: 1, background: "#FFFBEB" }} />
+      <div style={{ flex: 1, background: "#3D3400" }} />
+    </div>
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Award Background</p>
+    <code style={{ fontSize: 11 }}>--reddit-notif-award-bg</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>Light: #FFFBEB / Dark: #3D3400</code>
+  </div>
+  <div>
+    <div style={{ display: "flex", height: 64, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" }}>
+      <div style={{ flex: 1, background: "#ECFDF5" }} />
+      <div style={{ flex: 1, background: "#0D2818" }} />
+    </div>
+    <p style={{ fontSize: 13, marginTop: 6, fontWeight: 600 }}>Trending Background</p>
+    <code style={{ fontSize: 11 }}>--reddit-notif-trending-bg</code><br />
+    <code style={{ fontSize: 11, color: "#888" }}>Light: #ECFDF5 / Dark: #0D2818</code>
+  </div>
+</div>
+
+---
+
+## Usage
+
+```css
+/* In component inline styles */
+.my-component {
+  background: var(--reddit-bg-surface);
+  color: var(--reddit-text-primary);
+  border: 1px solid var(--reddit-border);
+}
+
+/* Always provide a fallback for standalone usage */
+.my-component {
+  color: var(--reddit-text-primary, #1A1A1B);
+}
+```

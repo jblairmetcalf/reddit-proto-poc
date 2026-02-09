@@ -1,0 +1,109 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Views" />
+
+# Views & Compositions
+
+The Reddit mobile prototype renders within a 390x844px iPhone frame with a Dynamic Island notch. All views are accessible through the bottom tab navigation.
+
+---
+
+## View Architecture
+
+```
+RedditMobile
+├── Home Tab (activeTab: "home")
+│   ├── Feed View (currentView: "feed")
+│   │   ├── Header (reddit logo + search + avatar)
+│   │   ├── Sort Tabs (Best / Hot / New / Top / Rising)
+│   │   ├── PostCard[] (scrollable list)
+│   │   └── Create Post FAB
+│   ├── Post Detail (currentView: "post-detail")
+│   │   ├── Back button + header
+│   │   ├── PostCard (expanded)
+│   │   ├── Comment Sort (Best / Top / New / Controversial)
+│   │   ├── CommentThread[] (recursive)
+│   │   └── Comment input bar
+│   ├── Topic Feed (currentView: "topic-feed")
+│   │   ├── Back button + flair name
+│   │   └── PostCard[] (filtered by flair)
+│   └── Community Feed (currentView: "community-feed")
+│       ├── Community header (icon, name, members)
+│       ├── Join button
+│       └── PostCard[] (filtered by subreddit)
+│
+├── Communities Tab (activeTab: "communities")
+│   ├── Section header
+│   └── CommunityItem[] (with slide-in animation)
+│
+├── Inbox Tab (activeTab: "notifications")
+│   ├── Section header + badge count
+│   └── NotificationItem[] (by type: upvote, comment, award, trending)
+│
+└── Profile Tab (activeTab: "profile")
+    └── ProfileView
+        ├── Avatar + username
+        ├── Karma + account age
+        ├── Stats grid (posts, comments, awards)
+        └── Section buttons (saved, history, achievements)
+```
+
+---
+
+## Component Composition
+
+### Feed View Composition
+
+The feed view stacks these components vertically:
+
+| Order | Component | Description |
+|-------|-----------|-------------|
+| 1 | **Header Bar** | Reddit logo, search icon, user avatar (inline in RedditMobile) |
+| 2 | **Sort Tabs** | Horizontal scroll, pill-style active indicator (inline) |
+| 3 | **PostCard** (repeated) | Feed items with separator borders |
+| 4 | **Create Post FAB** | Fixed-position orange circle with Plus icon |
+| 5 | **BottomNav** | Sticky bottom, 4 tabs |
+
+### Post Detail Composition
+
+| Order | Component | Description |
+|-------|-----------|-------------|
+| 1 | **Back Header** | ChevronLeft + subreddit name (inline) |
+| 2 | **PostCard** | Same component, different context |
+| 3 | **Comment Sort** | Dropdown-style sort selector (inline) |
+| 4 | **CommentThread** (repeated) | Recursive with reply indentation |
+| 5 | **Comment Input** | Text input + Send button (inline) |
+| 6 | **BottomNav** | Same as feed |
+
+---
+
+## Interacting with Views in Storybook
+
+Since the RedditMobile component manages its own internal state, you interact with it through its UI:
+
+1. **Switch tabs** — Click the bottom navigation icons
+2. **View post detail** — Click any post card
+3. **Navigate back** — Click the back arrow in the header
+4. **Filter by flair** — Click a flair badge on a post
+5. **Vote** — Click the up/down arrows
+6. **Search** — Click the search icon in the header
+7. **Create post** — Click the orange FAB button
+8. **Browse community** — Click a community in the Communities tab
+
+Use the **Theme** toolbar (sun/moon icon) to toggle between Light, Dark, and System modes.
+
+---
+
+## Atomic Components
+
+Each extracted atomic component can be viewed and tested independently:
+
+| Component | Storybook Path | Stories |
+|-----------|---------------|---------|
+| PostCard | `Reddit/PostCard` | Default, WithImage, NoFlair, Upvoted, Downvoted |
+| CommentThread | `Reddit/CommentThread` | Default, WithReplies, OPComment, Upvoted, AsReply |
+| NotificationItem | `Reddit/NotificationItem` | Upvote, Comment, Award, Trending, Read |
+| CommunityItem | `Reddit/CommunityItem` | Default, WithJoinButton, Science, Art, Music |
+| BottomNav | `Reddit/BottomNav` | Home, Communities, Notifications, Profile |
+| ProfileView | `Reddit/ProfileView` | Default, PowerUser, NewUser |
+| RedditMobile | `Prototype/RedditMobile` | DefaultFeed, TechFeed, SinglePost, ViralFeed, EmptyFeed |
