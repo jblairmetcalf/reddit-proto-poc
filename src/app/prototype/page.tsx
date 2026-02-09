@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import RedditMobile from "@/components/prototype/RedditMobile";
 import { useTracking } from "@/hooks/useTracking";
 import { mapRedditPost, mapRedditComment, mapRedditSubreddit } from "@/lib/reddit-mapper";
@@ -52,7 +53,159 @@ const prototypeStyles = `
     z-index: 9999;
     pointer-events: none;
   }
+  .proto-toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9998;
+  }
+  .proto-toolbar-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #18181b;
+    border-bottom: 1px solid #27272a;
+  }
+  .proto-toolbar-back {
+    color: #a1a1aa;
+    font-size: 13px;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .proto-toolbar-back:hover { color: #fff; background: #27272a; }
+  .proto-toolbar-title {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .proto-toolbar-toggle {
+    color: #a1a1aa;
+    background: none;
+    border: 1px solid #3f3f46;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .proto-toolbar-toggle:hover { color: #fff; border-color: #52525b; background: #27272a; }
+  .proto-toolbar-menu {
+    background: #18181b;
+    border-bottom: 1px solid #27272a;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+  }
+  .proto-toolbar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: #a1a1aa;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .proto-toolbar-item:hover { color: #fff; background: #27272a; }
+  .proto-toolbar-item[data-active="true"] {
+    color: #fb923c;
+    background: rgba(251,146,60,0.08);
+    border-color: rgba(251,146,60,0.2);
+  }
+  .proto-toolbar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .proto-toolbar-spacer {
+    height: 44px;
+  }
 `;
+
+const VARIANT_DOT_COLORS: Record<string, string> = {
+  default: "#71717a",
+  "variant-a": "#3b82f6",
+  "variant-b": "#22c55e",
+  "variant-c": "#a855f7",
+};
+
+function PrototypeToolbar({
+  currentVariant,
+  isParticipant,
+}: {
+  currentVariant?: VariantConfig;
+  isParticipant: boolean;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+
+  if (isParticipant) return null;
+
+  const variants = Object.values(VARIANT_PRESETS);
+  const currentLabel = currentVariant?.label || "Default";
+
+  return (
+    <div className="proto-toolbar">
+      <div className="proto-toolbar-bar">
+        <Link href="/prototypes" className="proto-toolbar-back">
+          &larr; Back
+        </Link>
+        <span className="proto-toolbar-title">
+          Viewing: {currentLabel}
+        </span>
+        <button
+          className="proto-toolbar-toggle"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? "Close" : "All Prototypes"}
+        </button>
+      </div>
+      {menuOpen && (
+        <div className="proto-toolbar-menu">
+          {variants.map((v) => {
+            const isActive = (currentVariant?.id || "default") === v.id;
+            return (
+              <a
+                key={v.id}
+                href={v.id === "default" ? "/prototype" : `/prototype?variant=${v.id}`}
+                className="proto-toolbar-item"
+                data-active={isActive}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMenuOpen(false);
+                  const url = v.id === "default" ? "/prototype" : `/prototype?variant=${v.id}`;
+                  router.push(url);
+                }}
+              >
+                <span
+                  className="proto-toolbar-dot"
+                  style={{ background: VARIANT_DOT_COLORS[v.id] || VARIANT_DOT_COLORS.default }}
+                />
+                {v.label}
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PrototypeContent() {
   const searchParams = useSearchParams();
@@ -168,10 +321,14 @@ function PrototypeContent() {
     );
   }
 
+  const isParticipant = !!token;
+
   return (
     <>
       <style>{prototypeStyles}</style>
-      {variantConfig && variantConfig.id !== "default" && (
+      <PrototypeToolbar currentVariant={variantConfig} isParticipant={isParticipant} />
+      {!isParticipant && <div className="proto-toolbar-spacer" />}
+      {variantConfig && variantConfig.id !== "default" && isParticipant && (
         <div className="variant-badge">{variantConfig.label}</div>
       )}
       <div className="prototype-page">

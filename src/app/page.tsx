@@ -7,6 +7,11 @@ const routes = [
     description: "Reddit prototype with Home, Notifications, and Profile navigation",
   },
   {
+    href: "/prototypes",
+    title: "Prototypes",
+    description: "Review all prototype variants and preview them",
+  },
+  {
     href: "/uxr",
     title: "UXR Dashboard",
     description: "User experience research dashboard",

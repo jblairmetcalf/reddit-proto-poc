@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "storybook build -o storybook-static && node -e \"const f=require('fs');const h=f.readFileSync('storybook-static/index.html','utf8');f.writeFileSync('storybook-static/index.html',h.replaceAll('href=\\\"./','href=\\\"/storybook/').replaceAll('src=\\\"./','src=\\\"/storybook/'))\" && cp -r storybook-static public/storybook && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",

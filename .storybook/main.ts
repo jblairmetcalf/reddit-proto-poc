@@ -15,9 +15,5 @@ const config: StorybookConfig = {
   "staticDirs": [
     "../public"
   ],
-  viteFinal(config) {
-    config.base = "/storybook/";
-    return config;
-  },
 };
 export default config;
