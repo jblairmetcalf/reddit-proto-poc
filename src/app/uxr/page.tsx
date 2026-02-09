@@ -28,6 +28,14 @@ const cards = [
     statColor: "text-blue-400",
   },
   {
+    href: "/uxr/synthetic-users",
+    title: "Synthetic Users",
+    icon: "🤖",
+    description: "Create and manage synthetic user personas like new, casual, core, commenter, and poster",
+    stat: "Personas",
+    statColor: "text-teal-400",
+  },
+  {
     href: "/uxr/variants",
     title: "Variants",
     icon: "🔀",

@@ -9,6 +9,7 @@ const navItems = [
   { href: "/uxr/dashboard", label: "Live Dashboard", icon: "📡" },
   { href: "/uxr/studies", label: "Studies", icon: "🧪" },
   { href: "/uxr/participants", label: "Participants", icon: "👥" },
+  { href: "/uxr/synthetic-users", label: "Synthetic Users", icon: "🤖" },
   { href: "/uxr/variants", label: "Variants", icon: "🔀" },
 ];
 
