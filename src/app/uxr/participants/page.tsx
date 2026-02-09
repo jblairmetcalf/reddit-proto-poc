@@ -17,6 +17,8 @@ interface Participant {
   id: string;
   name: string;
   email?: string;
+  persona?: string;
+  userType?: string;
   studyId: string;
   status: "invited" | "active" | "completed" | "timed_out";
   tokenUrl?: string;
@@ -93,6 +95,12 @@ export default function ParticipantsPage() {
           prototypeVariant: selectedStudy?.prototypeVariant,
         }),
       });
+
+      if (!tokenRes.ok) {
+        console.error("Token generation failed:", tokenRes.status);
+        alert("Failed to generate invite link. Please try again.");
+        return;
+      }
 
       const tokenData = await tokenRes.json();
 
@@ -240,6 +248,11 @@ export default function ParticipantsPage() {
                     <h3 className="text-sm font-semibold text-white">
                       {p.name}
                     </h3>
+                    {p.persona && (
+                      <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+                        {p.persona}
+                      </span>
+                    )}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[p.status] || STATUS_STYLES.invited}`}
                     >
@@ -248,6 +261,7 @@ export default function ParticipantsPage() {
                   </div>
                   <p className="mt-1 text-xs text-zinc-500">
                     Study: {getStudyName(p.studyId)}
+                    {p.userType && ` · ${p.userType}`}
                     {p.email && ` · ${p.email}`}
                     {p.createdAt &&
                       ` · ${new Date(p.createdAt.seconds * 1000).toLocaleDateString()}`}

@@ -27,6 +27,14 @@ const cards = [
     stat: "Invite",
     statColor: "text-blue-400",
   },
+  {
+    href: "/uxr/variants",
+    title: "Variants",
+    icon: "🔀",
+    description: "Compare prototype variant configurations and preview each variant",
+    stat: "Compare",
+    statColor: "text-purple-400",
+  },
 ];
 
 export default function UxrOverview() {

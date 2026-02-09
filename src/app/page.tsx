@@ -2,11 +2,6 @@ import Link from "next/link";
 
 const routes = [
   {
-    href: "/prototype",
-    title: "Prototype",
-    description: "Reddit prototype with Home, Notifications, and Profile navigation",
-  },
-  {
     href: "/prototypes",
     title: "Prototypes",
     description: "Review all prototype variants and preview them",
@@ -15,6 +10,11 @@ const routes = [
     href: "/uxr",
     title: "UXR Dashboard",
     description: "User experience research dashboard",
+  },
+  {
+    href: "/apis",
+    title: "APIs",
+    description: "Explore and test all available API endpoints",
   },
 ];
 
@@ -38,6 +38,17 @@ export default function Home() {
             <p className="mt-2 text-sm text-zinc-400">{route.description}</p>
           </Link>
         ))}
+        <a
+          href="https://reddit-proto-poc-storybook.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-orange-600"
+        >
+          <h2 className="text-lg font-semibold text-white group-hover:text-orange-400">
+            Storybook
+          </h2>
+          <p className="mt-2 text-sm text-zinc-400">Component library and design system documentation</p>
+        </a>
       </div>
     </div>
   );

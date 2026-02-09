@@ -321,6 +321,7 @@ const RedditMobile: React.FC<RedditMobileProps> = ({
   const navigateToPost = async (post: PrototypePost) => {
     setSelectedPost(post);
     setCurrentView("post-detail");
+    setActiveComments([]);
     track("post_click", { postId: post.id, subreddit: post.subreddit });
 
     if (onLoadComments && post.subredditForApi && post.redditId) {
@@ -330,10 +331,13 @@ const RedditMobile: React.FC<RedditMobileProps> = ({
           post.redditId,
           commentSort
         );
-        if (comments.length > 0) setActiveComments(comments);
+        if (comments && comments.length > 0) setActiveComments(comments);
+        else setActiveComments(DEFAULT_COMMENTS);
       } catch {
-        // Keep default comments on error
+        setActiveComments(DEFAULT_COMMENTS);
       }
+    } else {
+      setActiveComments(DEFAULT_COMMENTS);
     }
   };
 

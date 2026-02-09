@@ -289,7 +289,8 @@ function PrototypeContent() {
       );
       if (!res.ok) return [];
       const data = await res.json();
-      const commentListing = data[1];
+      const commentListing = data?.[1];
+      if (!commentListing?.data?.children) return [];
       return commentListing.data.children
         .filter((c: { kind: string }) => c.kind === "t1")
         .map((c: { data: Parameters<typeof mapRedditComment>[0] }) =>

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Participant token error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
+      { error: "Token generation failed" },
       { status: 500 }
     );
   }

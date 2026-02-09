@@ -7,10 +7,13 @@ import { db } from "@/lib/firebase";
 import {
   doc,
   updateDoc,
+  addDoc,
   collection,
   query,
   where,
+  orderBy,
   onSnapshot,
+  Timestamp,
 } from "firebase/firestore";
 import { VARIANT_PRESETS } from "@/lib/variants";
 
@@ -27,8 +30,19 @@ interface Participant {
   id: string;
   name: string;
   email?: string;
+  persona?: string;
+  userType?: string;
   status: string;
   tokenUrl?: string;
+  createdAt?: { seconds: number };
+}
+
+interface StudyOutcome {
+  id: string;
+  decision: string;
+  rationale: string;
+  decidedBy: string;
+  nextSteps: string;
   createdAt?: { seconds: number };
 }
 
@@ -56,8 +70,15 @@ export default function StudyDetailPage() {
   const [study, setStudy] = useState<Study | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [eventCount, setEventCount] = useState(0);
+  const [outcomes, setOutcomes] = useState<StudyOutcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
+  const [outcomeDecision, setOutcomeDecision] = useState("");
+  const [outcomeRationale, setOutcomeRationale] = useState("");
+  const [outcomeDecidedBy, setOutcomeDecidedBy] = useState("");
+  const [outcomeNextSteps, setOutcomeNextSteps] = useState("");
+  const [savingOutcome, setSavingOutcome] = useState(false);
 
   // Listen to study
   useEffect(() => {
@@ -92,6 +113,46 @@ export default function StudyDetailPage() {
     });
     return () => unsub();
   }, [id]);
+
+  // Listen to study outcomes
+  useEffect(() => {
+    const q = query(
+      collection(db, "studies", id, "outcomes"),
+      orderBy("createdAt", "desc")
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setOutcomes(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<StudyOutcome, "id">),
+        }))
+      );
+    });
+    return () => unsub();
+  }, [id]);
+
+  const handleAddOutcome = async () => {
+    if (!outcomeDecision.trim()) return;
+    setSavingOutcome(true);
+    try {
+      await addDoc(collection(db, "studies", id, "outcomes"), {
+        decision: outcomeDecision.trim(),
+        rationale: outcomeRationale.trim(),
+        decidedBy: outcomeDecidedBy.trim(),
+        nextSteps: outcomeNextSteps.trim(),
+        createdAt: Timestamp.now(),
+      });
+      setOutcomeDecision("");
+      setOutcomeRationale("");
+      setOutcomeDecidedBy("");
+      setOutcomeNextSteps("");
+      setShowOutcomeForm(false);
+    } catch (err) {
+      console.error("Failed to add outcome:", err);
+    } finally {
+      setSavingOutcome(false);
+    }
+  };
 
   const handleStatusChange = async () => {
     if (!study) return;
@@ -250,10 +311,19 @@ export default function StudyDetailPage() {
                 className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-white">{p.name}</p>
-                  {p.email && (
-                    <p className="text-xs text-zinc-500">{p.email}</p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-white">{p.name}</p>
+                    {p.persona && (
+                      <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+                        {p.persona}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+                    {p.userType && <span>{p.userType}</span>}
+                    {p.userType && p.email && <span>&middot;</span>}
+                    {p.email && <span>{p.email}</span>}
+                  </div>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
@@ -266,6 +336,109 @@ export default function StudyDetailPage() {
                 >
                   {p.status}
                 </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Study Outcomes */}
+      <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-white">Study Outcomes</h2>
+          <button
+            onClick={() => setShowOutcomeForm(!showOutcomeForm)}
+            className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-500"
+          >
+            {showOutcomeForm ? "Cancel" : "Add Decision"}
+          </button>
+        </div>
+
+        {showOutcomeForm && (
+          <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 p-4 space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Decision</label>
+              <input
+                type="text"
+                value={outcomeDecision}
+                onChange={(e) => setOutcomeDecision(e.target.value)}
+                placeholder="e.g., Proceed with variant-a for production"
+                className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Rationale</label>
+              <textarea
+                value={outcomeRationale}
+                onChange={(e) => setOutcomeRationale(e.target.value)}
+                placeholder="Why was this decision made?"
+                rows={3}
+                className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none resize-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Decided By</label>
+                <input
+                  type="text"
+                  value={outcomeDecidedBy}
+                  onChange={(e) => setOutcomeDecidedBy(e.target.value)}
+                  placeholder="e.g., VP Product, Leadership Team"
+                  className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Next Steps</label>
+                <input
+                  type="text"
+                  value={outcomeNextSteps}
+                  onChange={(e) => setOutcomeNextSteps(e.target.value)}
+                  placeholder="e.g., Ship to 10% of users in Q2"
+                  className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleAddOutcome}
+              disabled={!outcomeDecision.trim() || savingOutcome}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingOutcome ? "Saving..." : "Save Decision"}
+            </button>
+          </div>
+        )}
+
+        {outcomes.length === 0 && !showOutcomeForm ? (
+          <p className="text-sm text-zinc-500">
+            No outcomes recorded yet. Add a decision when leadership responds to the results.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {outcomes.map((o) => (
+              <div key={o.id} className="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
+                <div className="flex items-start justify-between">
+                  <h3 className="text-sm font-semibold text-white">{o.decision}</h3>
+                  {o.createdAt && (
+                    <span className="text-[10px] text-zinc-600 flex-shrink-0 ml-3">
+                      {new Date(o.createdAt.seconds * 1000).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {o.rationale && (
+                  <p className="mt-2 text-xs text-zinc-400">{o.rationale}</p>
+                )}
+                <div className="mt-3 flex items-center gap-4 text-xs">
+                  {o.decidedBy && (
+                    <span className="text-zinc-500">
+                      By: <span className="text-zinc-300">{o.decidedBy}</span>
+                    </span>
+                  )}
+                  {o.nextSteps && (
+                    <span className="text-zinc-500">
+                      Next: <span className="text-zinc-300">{o.nextSteps}</span>
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

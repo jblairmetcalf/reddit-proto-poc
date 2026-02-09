@@ -9,33 +9,45 @@ import type {
 
 let accessToken: string | null = null;
 let tokenExpiry = 0;
+let tokenPromise: Promise<string> | null = null;
 
 async function getAccessToken(): Promise<string> {
   if (accessToken && Date.now() < tokenExpiry) return accessToken;
 
-  const clientId = process.env.REDDIT_CLIENT_ID;
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  // Reuse in-flight token request to prevent race conditions
+  if (tokenPromise) return tokenPromise;
 
-  if (!clientId || !clientSecret) {
-    throw new Error("Reddit API credentials not configured");
+  tokenPromise = (async () => {
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      throw new Error("Reddit API credentials not configured");
+    }
+
+    const res = await fetch("https://www.reddit.com/api/v1/access_token", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "reddit-proto-poc/0.1.0",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    if (!res.ok) throw new Error(`Reddit auth failed: ${res.status}`);
+
+    const data = await res.json();
+    accessToken = data.access_token;
+    tokenExpiry = Date.now() + data.expires_in * 1000 - 60_000;
+    return accessToken!;
+  })();
+
+  try {
+    return await tokenPromise;
+  } finally {
+    tokenPromise = null;
   }
-
-  const res = await fetch("https://www.reddit.com/api/v1/access_token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "reddit-proto-poc/0.1.0",
-    },
-    body: "grant_type=client_credentials",
-  });
-
-  if (!res.ok) throw new Error(`Reddit auth failed: ${res.status}`);
-
-  const data = await res.json();
-  accessToken = data.access_token;
-  tokenExpiry = Date.now() + data.expires_in * 1000 - 60_000;
-  return accessToken!;
 }
 
 async function redditFetch(path: string): Promise<unknown> {

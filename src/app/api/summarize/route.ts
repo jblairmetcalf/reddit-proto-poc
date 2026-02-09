@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
+let client: Anthropic | null = null;
+function getClient() {
+  if (!client) client = new Anthropic();
+  return client;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +31,7 @@ export async function POST(req: NextRequest) {
 - If events contain multiple variants, compare behavior between variants.\n`;
     }
 
-    const message = await client.messages.create({
+    const message = await getClient().messages.create({
       model: "claude-sonnet-4-5-20250929",
       max_tokens: 1024,
       messages: [
@@ -54,7 +58,7 @@ Provide a concise 3-5 paragraph analysis.${studyName ? " Reference the study and
   } catch (err) {
     console.error("Summarize error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
+      { error: "Summarization failed" },
       { status: 500 }
     );
   }
