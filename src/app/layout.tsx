@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Reddit_Sans, Reddit_Mono } from "next/font/google";
 import AuthGate from "@/components/AuthGate";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const redditSans = Reddit_Sans({
+  variable: "--font-reddit-sans",
   subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const redditMono = Reddit_Mono({
+  variable: "--font-reddit-mono",
   subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600", "700"],
 });
 
 export const viewport: Viewport = {
@@ -25,6 +27,10 @@ export const metadata: Metadata = {
   title: "Reddit Proto",
   description: "Reddit Proto - Prototype Workspace",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/reddit-logo.png",
+    apple: "/reddit-logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -40,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${redditSans.variable} ${redditMono.variable} antialiased`}
       >
         <AuthGate>{children}</AuthGate>
       </body>

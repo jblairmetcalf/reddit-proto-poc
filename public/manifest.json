@@ -9,6 +9,11 @@
   "orientation": "portrait",
   "icons": [
     {
+      "src": "/reddit-logo.png",
+      "sizes": "800x800",
+      "type": "image/png"
+    },
+    {
       "src": "/icon-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml"

@@ -33,7 +33,7 @@ export default function ApisPage() {
       <header className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Link
-            href="/"
+            href="/tools"
             className="text-sm text-zinc-500 hover:text-white transition-colors"
           >
             &larr;
@@ -49,7 +49,7 @@ export default function ApisPage() {
         {apis.map((api) => (
           <Link
             key={api.slug}
-            href={`/apis/${api.slug}`}
+            href={`/tools/apis/${api.slug}`}
             className="group rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-orange-600"
           >
             <div className="mb-3 flex items-center justify-between">

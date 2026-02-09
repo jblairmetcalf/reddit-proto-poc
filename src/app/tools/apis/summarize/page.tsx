@@ -69,7 +69,7 @@ export default function SummarizeApiPage() {
     <div className="min-h-screen bg-zinc-950 p-8">
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Link href="/apis" className="text-sm text-zinc-500 hover:text-white transition-colors">&larr;</Link>
+          <Link href="/tools/apis" className="text-sm text-zinc-500 hover:text-white transition-colors">&larr;</Link>
           <h1 className="text-2xl font-bold text-white">AI Summarize</h1>
           <span className="rounded-full bg-purple-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-purple-400">POST</span>
         </div>

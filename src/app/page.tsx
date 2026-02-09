@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const routes = [
   {
@@ -7,23 +8,37 @@ const routes = [
     description: "Review all prototype variants and preview them",
   },
   {
+    href: "/prototypers",
+    title: "Prototypers",
+    description: "Manage prototypers and their prototype portfolios",
+  },
+  {
     href: "/uxr",
     title: "UXR Dashboard",
     description: "User experience research dashboard",
   },
   {
-    href: "/apis",
-    title: "APIs",
-    description: "Explore and test all available API endpoints",
+    href: "/tools",
+    title: "Tools",
+    description: "Feed builder, playground, data queries, and API explorer",
   },
 ];
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold text-white">Reddit Proto</h1>
-        <p className="mt-1 text-zinc-400">Dashboard</p>
+      <header className="mb-10 flex items-center gap-4">
+        <Image
+          src="/reddit-logo.png"
+          alt="Reddit"
+          width={48}
+          height={48}
+          className="rounded-full"
+        />
+        <div>
+          <h1 className="text-3xl font-bold text-white">Reddit Proto</h1>
+          <p className="mt-1 text-zinc-400">Dashboard</p>
+        </div>
       </header>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {routes.map((route) => (
