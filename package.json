@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "storybook build -o storybook-static && cp -r storybook-static public/storybook && next build",
     "start": "next start",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
