@@ -1,8 +1,15 @@
 {
   "framework": "nextjs",
-  "rewrites": [
+  "redirects": [
     {
       "source": "/storybook",
+      "destination": "/storybook/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/storybook/",
       "destination": "/storybook/index.html"
     }
   ]
