@@ -7,12 +7,11 @@ import { db } from "@/lib/firebase";
 import {
   collection,
   addDoc,
+  updateDoc,
   onSnapshot,
   deleteDoc,
   doc,
   serverTimestamp,
-  query,
-  orderBy,
 } from "firebase/firestore";
 import { VARIANT_PRESETS } from "@/lib/variants";
 
@@ -52,64 +51,107 @@ export default function PrototyperDetailPage() {
 
   const [prototyper, setPrototyper] = useState<Prototyper | null>(null);
   const [prototypes, setPrototypes] = useState<Prototype[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"draft" | "in-progress" | "complete">("draft");
+  const [protoType, setProtoType] = useState<"default" | "link" | "file">("default");
   const [variant, setVariant] = useState("default");
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Listen to prototyper doc
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "prototypers", id), (snap) => {
-      if (snap.exists()) {
-        setPrototyper(snap.data() as Prototyper);
-      }
-    });
+    const unsub = onSnapshot(
+      doc(db, "prototypers", id),
+      (snap) => {
+        if (snap.exists()) {
+          setPrototyper(snap.data() as Prototyper);
+        }
+      },
+      (err) => console.error("Prototyper doc snapshot error:", err)
+    );
     return () => unsub();
   }, [id]);
 
   // Listen to prototypes sub-collection
   useEffect(() => {
-    const q = query(
+    const unsub = onSnapshot(
       collection(db, "prototypers", id, "prototypes"),
-      orderBy("createdAt", "desc")
+      (snap) => {
+        const docs = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<Prototype, "id">),
+        }));
+        docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+        setPrototypes(docs);
+      }
     );
-    const unsub = onSnapshot(q, (snap) => {
-      setPrototypes(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Prototype, "id">) }))
-      );
-    });
     return () => unsub();
   }, [id]);
 
-  const handleCreate = async () => {
+  function resetForm() {
+    setTitle("");
+    setDescription("");
+    setStatus("draft");
+    setProtoType("default");
+    setVariant("default");
+    setUrl("");
+    setFileName("");
+    setEditingId(null);
+  }
+
+  function openCreate() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEdit(proto: Prototype) {
+    setTitle(proto.title);
+    setDescription(proto.description);
+    setStatus(proto.status);
+    setProtoType(proto.url ? "link" : proto.fileName ? "file" : "default");
+    setVariant(proto.variant);
+    setUrl(proto.url);
+    setFileName(proto.fileName);
+    setEditingId(proto.id);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    resetForm();
+    setShowForm(false);
+  }
+
+  const handleSave = async () => {
     if (!title.trim()) return;
-    setCreating(true);
+    setSaving(true);
     try {
-      await addDoc(collection(db, "prototypers", id, "prototypes"), {
+      const data = {
         title: title.trim(),
         description: description.trim(),
         status,
-        variant,
-        url: url.trim(),
-        fileName,
+        variant: protoType === "default" ? variant : "default",
+        url: protoType === "link" ? url.trim() : "",
+        fileName: protoType === "file" ? fileName : "",
         modifiedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      });
-      setTitle("");
-      setDescription("");
-      setStatus("draft");
-      setVariant("default");
-      setUrl("");
-      setFileName("");
-      setShowCreate(false);
+      };
+
+      if (editingId) {
+        await updateDoc(doc(db, "prototypers", id, "prototypes", editingId), data);
+      } else {
+        await addDoc(collection(db, "prototypers", id, "prototypes"), {
+          ...data,
+          createdAt: serverTimestamp(),
+        });
+      }
+      closeForm();
     } catch (err) {
-      console.error("Failed to create prototype:", err);
+      console.error("Failed to save prototype:", err);
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   };
 
@@ -163,10 +205,10 @@ export default function PrototyperDetailPage() {
             )}
           </div>
           <button
-            onClick={() => setShowCreate(!showCreate)}
+            onClick={openCreate}
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500"
           >
-            {showCreate ? "Cancel" : "Add Prototype"}
+            Add Prototype
           </button>
         </div>
 
@@ -187,44 +229,57 @@ export default function PrototyperDetailPage() {
             <p className="mt-1 text-lg font-bold text-white">
               {latestModified
                 ? new Date(latestModified).toLocaleDateString()
-                : "—"}
+                : "\u2014"}
             </p>
           </div>
         </div>
       </header>
 
-      {/* Create form */}
-      {showCreate && (
-        <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
-            Add Prototype
-          </h2>
-          <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Compact Feed Exploration"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
+      {/* Create / Edit dialog */}
+      {showForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeForm();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">
+                {editingId ? "Edit Prototype" : "Add Prototype"}
+              </h2>
+              <button
+                onClick={closeForm}
+                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+              >
+                &times;
+              </button>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What does this prototype explore?"
-                rows={3}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Compact Feed Exploration"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What does this prototype explore?"
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                />
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">
                   Status
@@ -242,54 +297,102 @@ export default function PrototyperDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
-                  Variant
+                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  Type
                 </label>
-                <select
-                  value={variant}
-                  onChange={(e) => setVariant(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
-                >
-                  {Object.values(VARIANT_PRESETS).map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.label}
-                    </option>
+                <div className="flex gap-2">
+                  {([
+                    { value: "default", label: "Default Prototype" },
+                    { value: "link", label: "Link" },
+                    { value: "file", label: "Uploaded File" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setProtoType(opt.value)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                        protoType === opt.value
+                          ? "border-orange-500 bg-orange-500/10 text-orange-400"
+                          : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
                   ))}
-                </select>
+                </div>
+              </div>
+              {protoType === "default" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    Variant
+                  </label>
+                  <select
+                    value={variant}
+                    onChange={(e) => setVariant(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                  >
+                    {Object.values(VARIANT_PRESETS).map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {protoType === "link" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              )}
+              {protoType === "file" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    File
+                  </label>
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      setFileName(file ? file.name : "");
+                    }}
+                    className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-600"
+                  />
+                  {editingId && fileName && (
+                    <p className="mt-1 text-[10px] text-zinc-600">
+                      Current: {fileName}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  onClick={closeForm}
+                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!title.trim() || saving}
+                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Prototype"
+                      : "Add Prototype"}
+                </button>
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                URL (optional)
-              </label>
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                File (optional)
-              </label>
-              <input
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  setFileName(file ? file.name : "");
-                }}
-                className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-600"
-              />
-            </div>
-            <button
-              onClick={handleCreate}
-              disabled={!title.trim() || creating}
-              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating ? "Adding..." : "Add Prototype"}
-            </button>
           </div>
         </div>
       )}
@@ -312,12 +415,20 @@ export default function PrototyperDetailPage() {
                 <h3 className="text-sm font-semibold text-white">
                   {proto.title}
                 </h3>
-                <button
-                  onClick={() => handleDelete(proto.id)}
-                  className="ml-2 rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                >
-                  Delete
-                </button>
+                <div className="ml-2 flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(proto)}
+                    className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(proto.id)}
+                    className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               {proto.description && (
                 <p className="mt-1 text-xs text-zinc-500">
@@ -334,31 +445,36 @@ export default function PrototyperDetailPage() {
                   {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
                 </span>
               </div>
-              <div className="mt-3 space-y-1">
-                {proto.modifiedAt && (
-                  <p className="text-[10px] text-zinc-600">
-                    Modified{" "}
-                    {new Date(
-                      proto.modifiedAt.seconds * 1000
-                    ).toLocaleDateString()}
-                  </p>
-                )}
-                {proto.url && (
-                  <a
-                    href={proto.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block text-[10px] text-orange-400 hover:underline"
-                  >
-                    Open link &rarr;
-                  </a>
-                )}
-                {proto.fileName && (
-                  <p className="text-[10px] text-zinc-600">
-                    File: {proto.fileName}
-                  </p>
-                )}
-              </div>
+              {proto.modifiedAt && (
+                <p className="mt-3 text-[10px] text-zinc-600">
+                  Modified{" "}
+                  {new Date(
+                    proto.modifiedAt.seconds * 1000
+                  ).toLocaleDateString()}
+                </p>
+              )}
+              {proto.url ? (
+                <a
+                  href={proto.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                >
+                  Open Link &rarr;
+                </a>
+              ) : proto.fileName ? (
+                <p className="mt-3 text-[10px] text-zinc-600">
+                  File: {proto.fileName}
+                </p>
+              ) : (
+                <Link
+                  href={`/prototype?variant=${proto.variant}`}
+                  target="_blank"
+                  className="mt-3 inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                >
+                  Preview
+                </Link>
+              )}
             </div>
           ))}
         </div>

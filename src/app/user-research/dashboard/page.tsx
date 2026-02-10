@@ -5,8 +5,6 @@ import { db } from "@/lib/firebase";
 import {
   collection,
   query,
-  orderBy,
-  limit,
   onSnapshot,
   where,
   type QueryConstraint,
@@ -35,6 +33,7 @@ interface Study {
   id: string;
   name: string;
   prototypeVariant: string;
+  createdAt?: { seconds: number };
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -83,27 +82,23 @@ export default function DashboardPage() {
 
   // Load studies
   useEffect(() => {
-    const sq = query(collection(db, "studies"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(sq, (snap) => {
-      setStudies(
-        snap.docs.map((d) => {
-          const data = d.data() as Omit<Study, "id">;
-          return { id: d.id, ...data };
-        })
-      );
+    const unsub = onSnapshot(collection(db, "studies"), (snap) => {
+      const docs = snap.docs.map((d) => {
+        const data = d.data() as Omit<Study, "id">;
+        return { id: d.id, ...data };
+      });
+      docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setStudies(docs);
     });
     return () => unsub();
   }, []);
 
   // Load events (filtered by study when selected)
   useEffect(() => {
-    const constraints: QueryConstraint[] = [
-      orderBy("timestamp", "desc"),
-      limit(100),
-    ];
+    const constraints: QueryConstraint[] = [];
 
     if (selectedStudyId) {
-      constraints.unshift(where("studyId", "==", selectedStudyId));
+      constraints.push(where("studyId", "==", selectedStudyId));
     }
 
     const q = query(collection(db, "events"), ...constraints);
@@ -115,7 +110,9 @@ export default function DashboardPage() {
           id: doc.id,
           ...(doc.data() as TrackingEvent),
         }));
-        setEvents(docs);
+        docs.sort((a, b) => b.timestamp - a.timestamp);
+        const limited = docs.slice(0, 100);
+        setEvents(limited);
         setConnected(true);
       },
       (err) => {

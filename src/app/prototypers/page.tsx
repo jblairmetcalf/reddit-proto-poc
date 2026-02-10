@@ -11,9 +11,18 @@ import {
   doc,
   getDocs,
   serverTimestamp,
-  query,
-  orderBy,
 } from "firebase/firestore";
+import { VARIANT_PRESETS } from "@/lib/variants";
+
+interface Prototype {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  variant: string;
+  url: string;
+  fileName: string;
+}
 
 interface Prototyper {
   id: string;
@@ -29,108 +38,29 @@ const ROLE_STYLES: Record<string, string> = {
   "Interaction Designer": "bg-sky-500/20 text-sky-400",
 };
 
-const SEED_DATA = [
-  {
-    name: "Blair Metcalf",
-    role: "Lead Prototyper",
-    email: "blair@example.com",
-    prototypes: [
-      {
-        title: "Compact Feed Exploration",
-        description: "Variant A feed density test",
-        status: "complete",
-        variant: "variant-a",
-      },
-      {
-        title: "Vote Bias Removal",
-        description: "Hidden vote count interaction study",
-        status: "in-progress",
-        variant: "variant-c",
-      },
-      {
-        title: "Mobile Navigation Redesign",
-        description: "Bottom nav pattern exploration",
-        status: "draft",
-        variant: "default",
-      },
-    ],
-  },
-  {
-    name: "James Lee",
-    role: "UX Engineer",
-    email: "james@example.com",
-    prototypes: [
-      {
-        title: "Comment Thread Redesign",
-        description: "Nested comment UX improvements",
-        status: "complete",
-        variant: "default",
-      },
-      {
-        title: "Award System Simplification",
-        description: "Minimal chrome experiment",
-        status: "in-progress",
-        variant: "variant-b",
-      },
-      {
-        title: "Search Flow Optimization",
-        description: "Subreddit discovery patterns",
-        status: "draft",
-        variant: "variant-a",
-      },
-    ],
-  },
-  {
-    name: "Josh Chisholm",
-    role: "Interaction Designer",
-    email: "josh@example.com",
-    prototypes: [
-      {
-        title: "Flair-Based Filtering",
-        description: "Topic-based content curation",
-        status: "complete",
-        variant: "default",
-      },
-      {
-        title: "Creator Tools Dashboard",
-        description: "Post creation workflow",
-        status: "in-progress",
-        variant: "variant-a",
-      },
-      {
-        title: "Notification Triage",
-        description: "Priority-based notification sorting",
-        status: "draft",
-        variant: "variant-b",
-      },
-    ],
-  },
-];
-
 export default function PrototypersPage() {
   const [prototypers, setPrototypers] = useState<Prototyper[]>([]);
-  const [protoCounts, setProtoCounts] = useState<Record<string, number>>({});
+  const [protoMap, setProtoMap] = useState<Record<string, Prototype[]>>({});
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
   const [creating, setCreating] = useState(false);
-  const [seeding, setSeeding] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const q = query(
-      collection(db, "prototypers"),
-      orderBy("createdAt", "desc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setPrototypers(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Prototyper, "id">) }))
-      );
+    const unsub = onSnapshot(collection(db, "prototypers"), (snap) => {
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<Prototyper, "id">),
+      }));
+      docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setPrototypers(docs);
     });
     return () => unsub();
   }, []);
 
-  // Listen for prototype counts per prototyper
+  // Listen for prototypes per prototyper
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
@@ -138,7 +68,11 @@ export default function PrototypersPage() {
       const unsub = onSnapshot(
         collection(db, "prototypers", p.id, "prototypes"),
         (snap) => {
-          setProtoCounts((prev) => ({ ...prev, [p.id]: snap.size }));
+          const protos = snap.docs.map((d) => ({
+            id: d.id,
+            ...(d.data() as Omit<Prototype, "id">),
+          }));
+          setProtoMap((prev) => ({ ...prev, [p.id]: protos }));
         }
       );
       unsubs.push(unsub);
@@ -170,7 +104,6 @@ export default function PrototypersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      // Delete sub-collection prototypes first
       const protoSnap = await getDocs(
         collection(db, "prototypers", id, "prototypes")
       );
@@ -185,38 +118,61 @@ export default function PrototypersPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    try {
-      for (const person of SEED_DATA) {
-        const prototyperRef = await addDoc(collection(db, "prototypers"), {
-          name: person.name,
-          role: person.role,
-          email: person.email,
-          createdAt: serverTimestamp(),
-        });
-        for (const proto of person.prototypes) {
-          await addDoc(
-            collection(db, "prototypers", prototyperRef.id, "prototypes"),
-            {
-              title: proto.title,
-              description: proto.description,
-              status: proto.status,
-              variant: proto.variant,
-              url: "",
-              fileName: "",
-              modifiedAt: serverTimestamp(),
-              createdAt: serverTimestamp(),
-            }
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Failed to seed data:", err);
-    } finally {
-      setSeeding(false);
+  // Filter prototypers by search across all metadata
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? prototypers.filter((p) => {
+        const protos = protoMap[p.id] || [];
+        // Match prototyper fields
+        const prototyperMatch = [p.name, p.role, p.email]
+          .filter(Boolean)
+          .some((v) => v.toLowerCase().includes(q));
+        if (prototyperMatch) return true;
+        // Match any prototype fields
+        return protos.some((proto) =>
+          [
+            proto.title,
+            proto.description,
+            proto.status,
+            proto.variant,
+            VARIANT_PRESETS[proto.variant]?.label,
+            proto.url,
+            proto.fileName,
+          ]
+            .filter(Boolean)
+            .some((v) => v!.toLowerCase().includes(q))
+        );
+      })
+    : prototypers;
+
+  // Build matching prototype highlights for search
+  function getMatchingProtos(prototyperId: string): Prototype[] {
+    if (!q) return [];
+    const protos = protoMap[prototyperId] || [];
+    // If the prototyper itself matches, don't highlight individual protos
+    const p = prototypers.find((x) => x.id === prototyperId);
+    if (
+      p &&
+      [p.name, p.role, p.email]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes(q))
+    ) {
+      return [];
     }
-  };
+    return protos.filter((proto) =>
+      [
+        proto.title,
+        proto.description,
+        proto.status,
+        proto.variant,
+        VARIANT_PRESETS[proto.variant]?.label,
+        proto.url,
+        proto.fileName,
+      ]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(q))
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
@@ -234,119 +190,189 @@ export default function PrototypersPage() {
               Manage prototypers and their prototype portfolios
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSeed}
-              disabled={seeding}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {seeding ? "Seeding..." : "Seed Team"}
-            </button>
-            <button
-              onClick={() => setShowCreate(!showCreate)}
-              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500"
-            >
-              {showCreate ? "Cancel" : "Add Prototyper"}
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500"
+          >
+            Add Prototyper
+          </button>
         </div>
       </header>
 
-      {/* Create form */}
+      {/* Add Prototyper dialog */}
       {showCreate && (
-        <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
-            Add Prototyper
-          </h2>
-          <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Blair Metcalf"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCreate(false);
+              setName("");
+              setRole("");
+              setEmail("");
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">
+                Add Prototyper
+              </h2>
+              <button
+                onClick={() => {
+                  setShowCreate(false);
+                  setName("");
+                  setRole("");
+                  setEmail("");
+                }}
+                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+              >
+                &times;
+              </button>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Role
-              </label>
-              <input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g., Lead Prototyper"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Blair Metcalf"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="e.g., Lead Prototyper"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="prototyper@example.com"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  onClick={() => {
+                    setShowCreate(false);
+                    setName("");
+                    setRole("");
+                    setEmail("");
+                  }}
+                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={!name.trim() || creating}
+                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? "Adding..." : "Add Prototyper"}
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="prototyper@example.com"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-            <button
-              onClick={handleCreate}
-              disabled={!name.trim() || creating}
-              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating ? "Adding..." : "Add Prototyper"}
-            </button>
           </div>
         </div>
       )}
 
+      {/* Search */}
+      <div className="mb-6">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, role, email, prototype title, variant, status..."
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+        />
+      </div>
+
       {/* Prototypers grid */}
-      {prototypers.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-800 p-12 text-center">
           <p className="text-sm text-zinc-500">
-            No prototypers yet. Add one or seed the team to get started.
+            {q
+              ? `No prototypers matching "${search.trim()}".`
+              : "No prototypers yet. Add one to get started."}
           </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {prototypers.map((p) => (
-            <div
-              key={p.id}
-              className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700"
-            >
-              <Link href={`/prototypers/${p.id}`} className="block">
-                <h3 className="text-sm font-semibold text-white group-hover:text-orange-400">
-                  {p.name}
-                </h3>
-                {p.role && (
-                  <span
-                    className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[p.role] || "bg-zinc-700 text-zinc-300"}`}
-                  >
-                    {p.role}
-                  </span>
-                )}
-                <p className="mt-3 text-xs text-zinc-500">
-                  {protoCounts[p.id] ?? 0} prototype
-                  {(protoCounts[p.id] ?? 0) !== 1 ? "s" : ""}
-                </p>
-                {p.email && (
-                  <p className="mt-1 text-[10px] text-zinc-600">{p.email}</p>
-                )}
-              </Link>
-              <button
-                onClick={() => handleDelete(p.id)}
-                className="mt-3 rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+          {filtered.map((p) => {
+            const protos = protoMap[p.id] || [];
+            const matchingProtos = getMatchingProtos(p.id);
+            return (
+              <div
+                key={p.id}
+                className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700"
               >
-                Delete
-              </button>
-            </div>
-          ))}
+                <Link href={`/prototypers/${p.id}`} className="block">
+                  <h3 className="text-sm font-semibold text-white group-hover:text-orange-400">
+                    {p.name}
+                  </h3>
+                  {p.role && (
+                    <span
+                      className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[p.role] || "bg-zinc-700 text-zinc-300"}`}
+                    >
+                      {p.role}
+                    </span>
+                  )}
+                  <p className="mt-3 text-xs text-zinc-500">
+                    {protos.length} prototype
+                    {protos.length !== 1 ? "s" : ""}
+                  </p>
+                  {p.email && (
+                    <p className="mt-1 text-[10px] text-zinc-600">{p.email}</p>
+                  )}
+                  {/* Show matching prototypes when searching */}
+                  {matchingProtos.length > 0 && (
+                    <div className="mt-3 space-y-1.5 border-t border-zinc-800 pt-3">
+                      <p className="text-[10px] font-medium uppercase text-zinc-600">
+                        Matching prototypes
+                      </p>
+                      {matchingProtos.map((proto) => (
+                        <div
+                          key={proto.id}
+                          className="rounded-lg bg-zinc-800 px-2.5 py-1.5"
+                        >
+                          <p className="text-xs text-zinc-300">
+                            {proto.title}
+                          </p>
+                          <p className="text-[10px] text-zinc-500">
+                            {proto.status}
+                            {" · "}
+                            {VARIANT_PRESETS[proto.variant]?.label ??
+                              proto.variant}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="mt-3 rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                >
+                  Delete
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

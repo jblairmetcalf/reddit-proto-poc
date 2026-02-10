@@ -3,6 +3,12 @@ import Image from "next/image";
 
 const routes = [
   {
+    href: "/prototype",
+    title: "Default Prototype",
+    description: "Open the default Reddit prototype",
+    external: true,
+  },
+  {
     href: "/prototypes",
     title: "Prototypes",
     description: "Review all prototype variants and preview them",
@@ -13,8 +19,8 @@ const routes = [
     description: "Manage prototypers and their prototype portfolios",
   },
   {
-    href: "/uxr",
-    title: "UXR Dashboard",
+    href: "/user-research",
+    title: "User Research",
     description: "User experience research dashboard",
   },
   {
@@ -45,6 +51,9 @@ export default function Home() {
           <Link
             key={route.href}
             href={route.href}
+            {...("external" in route && route.external
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
             className="group rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-orange-600"
           >
             <h2 className="text-lg font-semibold text-white group-hover:text-orange-400">
@@ -60,7 +69,7 @@ export default function Home() {
           className="group rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-orange-600"
         >
           <h2 className="text-lg font-semibold text-white group-hover:text-orange-400">
-            Storybook
+            Design System
           </h2>
           <p className="mt-2 text-sm text-zinc-400">Component library and design system documentation</p>
         </a>

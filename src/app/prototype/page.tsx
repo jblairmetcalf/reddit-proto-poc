@@ -162,14 +162,16 @@ const VARIANT_DOT_COLORS: Record<string, string> = {
 function PrototypeToolbar({
   currentVariant,
   isParticipant,
+  isMobile,
 }: {
   currentVariant?: VariantConfig;
   isParticipant: boolean;
+  isMobile: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
-  if (isParticipant) return null;
+  if (isParticipant || isMobile) return null;
 
   const variants = Object.values(VARIANT_PRESETS);
   const currentLabel = currentVariant?.label || "Default";
@@ -362,8 +364,8 @@ function PrototypeContent() {
   return (
     <>
       <style>{prototypeStyles}</style>
-      <PrototypeToolbar currentVariant={variantConfig} isParticipant={isParticipant} />
-      {!isParticipant && <div className="proto-toolbar-spacer" />}
+      <PrototypeToolbar currentVariant={variantConfig} isParticipant={isParticipant} isMobile={isMobile} />
+      {!isParticipant && !isMobile && <div className="proto-toolbar-spacer" />}
       {variantConfig && variantConfig.id !== "default" && isParticipant && (
         <div className="variant-badge">{variantConfig.label}</div>
       )}

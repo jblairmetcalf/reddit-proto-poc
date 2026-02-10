@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const cards = [
   {
-    href: "/uxr/dashboard",
+    href: "/user-research/dashboard",
     title: "Live Dashboard",
     icon: "📡",
     description: "Real-time event stream and session metrics from prototype interactions",
@@ -12,7 +12,7 @@ const cards = [
     statColor: "text-green-400",
   },
   {
-    href: "/uxr/studies",
+    href: "/user-research/studies",
     title: "Studies",
     icon: "🧪",
     description: "Create and manage UX research studies with prototype variants",
@@ -20,7 +20,7 @@ const cards = [
     statColor: "text-orange-400",
   },
   {
-    href: "/uxr/participants",
+    href: "/user-research/participants",
     title: "Participants",
     icon: "👥",
     description: "Invite participants, generate token links, and track completion",
@@ -28,20 +28,12 @@ const cards = [
     statColor: "text-blue-400",
   },
   {
-    href: "/uxr/synthetic-users",
+    href: "/user-research/synthetic-users",
     title: "Synthetic Users",
     icon: "🤖",
     description: "Create and manage synthetic user personas like new, casual, core, commenter, and poster",
     stat: "Personas",
     statColor: "text-teal-400",
-  },
-  {
-    href: "/uxr/variants",
-    title: "Variants",
-    icon: "🔀",
-    description: "Compare prototype variant configurations and preview each variant",
-    stat: "Compare",
-    statColor: "text-purple-400",
   },
 ];
 
@@ -49,7 +41,7 @@ export default function UxrOverview() {
   return (
     <div className="p-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-white">UXR Overview</h1>
+        <h1 className="text-2xl font-bold text-white">User Research</h1>
         <p className="mt-1 text-sm text-zinc-400">
           User experience research tools for the Reddit Proto platform
         </p>

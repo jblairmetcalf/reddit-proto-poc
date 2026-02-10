@@ -10,8 +10,6 @@ import {
   updateDoc,
   doc,
   serverTimestamp,
-  query,
-  orderBy,
 } from "firebase/firestore";
 
 interface SyntheticUser {
@@ -110,7 +108,6 @@ export default function SyntheticUsersPage() {
   const [users, setUsers] = useState<SyntheticUser[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form fields
@@ -121,17 +118,13 @@ export default function SyntheticUsersPage() {
   const [browsingHabits, setBrowsingHabits] = useState("");
 
   useEffect(() => {
-    const q = query(
-      collection(db, "syntheticUsers"),
-      orderBy("createdAt", "desc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setUsers(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<SyntheticUser, "id">),
-        }))
-      );
+    const unsub = onSnapshot(collection(db, "syntheticUsers"), (snap) => {
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<SyntheticUser, "id">),
+      }));
+      docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setUsers(docs);
     });
     return () => unsub();
   }, []);
@@ -205,29 +198,6 @@ export default function SyntheticUsersPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    try {
-      const seedUsers = PERSONA_PRESETS.map((preset, i) => ({
-        name: `${preset.label} ${i + 1}`,
-        persona: preset.persona,
-        description: preset.description,
-        traits: preset.traits,
-        browsingHabits: preset.browsingHabits,
-      }));
-      for (const user of seedUsers) {
-        await addDoc(collection(db, "syntheticUsers"), {
-          ...user,
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (err) {
-      console.error("Failed to seed synthetic users:", err);
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   return (
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
@@ -239,112 +209,130 @@ export default function SyntheticUsersPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleSeed}
-            disabled={seeding}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {seeding ? "Seeding..." : "Seed All Personas"}
-          </button>
-          <button
-            onClick={() => {
-              if (showCreate) {
-                resetForm();
-                setShowCreate(false);
-              } else {
-                setShowCreate(true);
-              }
-            }}
+            onClick={() => setShowCreate(true)}
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500"
           >
-            {showCreate ? "Cancel" : "Add Synthetic User"}
+            Add Synthetic User
           </button>
         </div>
       </header>
 
-      {/* Create / Edit form */}
+      {/* Create / Edit dialog */}
       {showCreate && (
-        <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
-            {editingId ? "Edit Synthetic User" : "Create Synthetic User"}
-          </h2>
-          <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              resetForm();
+              setShowCreate(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">
+                {editingId ? "Edit Synthetic User" : "Create Synthetic User"}
+              </h2>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowCreate(false);
+                }}
+                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Alex the Lurker"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    Persona
+                  </label>
+                  <select
+                    value={persona}
+                    onChange={(e) => applyPreset(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                  >
+                    {PERSONA_PRESETS.map((p) => (
+                      <option key={p.persona} value={p.persona}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">
-                  Name
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe this synthetic user's background and motivations..."
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  Traits (comma-separated)
                 </label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Alex the Lurker"
+                  value={traits}
+                  onChange={(e) => setTraits(e.target.value)}
+                  placeholder="e.g., curious, low engagement, short sessions"
                   className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">
-                  Persona
+                  Browsing Habits
                 </label>
-                <select
-                  value={persona}
-                  onChange={(e) => applyPreset(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                <textarea
+                  value={browsingHabits}
+                  onChange={(e) => setBrowsingHabits(e.target.value)}
+                  placeholder="Describe how this user typically browses Reddit..."
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setShowCreate(false);
+                  }}
+                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
                 >
-                  {PERSONA_PRESETS.map((p) => (
-                    <option key={p.persona} value={p.persona}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={!name.trim() || creating}
+                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Synthetic User"
+                      : "Create Synthetic User"}
+                </button>
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe this synthetic user's background and motivations..."
-                rows={2}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Traits (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={traits}
-                onChange={(e) => setTraits(e.target.value)}
-                placeholder="e.g., curious, low engagement, short sessions"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Browsing Habits
-              </label>
-              <textarea
-                value={browsingHabits}
-                onChange={(e) => setBrowsingHabits(e.target.value)}
-                placeholder="Describe how this user typically browses Reddit..."
-                rows={2}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
-              />
-            </div>
-            <button
-              onClick={handleCreate}
-              disabled={!name.trim() || creating}
-              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating
-                ? "Saving..."
-                : editingId
-                  ? "Update Synthetic User"
-                  : "Create Synthetic User"}
-            </button>
           </div>
         </div>
       )}
@@ -353,8 +341,7 @@ export default function SyntheticUsersPage() {
       {users.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-800 p-12 text-center">
           <p className="text-sm text-zinc-500">
-            No synthetic users yet. Create one or seed all personas to get
-            started.
+            No synthetic users yet. Create one to get started.
           </p>
         </div>
       ) : (

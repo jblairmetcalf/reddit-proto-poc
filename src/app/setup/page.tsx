@@ -160,13 +160,13 @@ export default function SetupPage() {
       {done && (
         <div className="mt-4 flex gap-3">
           <a
-            href="/uxr/studies"
+            href="/user-research/studies"
             className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-orange-500 hover:text-orange-400"
           >
             View Studies
           </a>
           <a
-            href="/uxr/participants"
+            href="/user-research/participants"
             className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-orange-500 hover:text-orange-400"
           >
             View Participants
