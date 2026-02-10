@@ -338,6 +338,55 @@ export default function StudyDetailPage() {
     }
   };
 
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState<string | null>(null);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+
+  const handleCopyLink = async (p: Participant) => {
+    if (p.tokenUrl) {
+      try {
+        await navigator.clipboard.writeText(p.tokenUrl);
+        setCopiedId(p.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch {
+        prompt("Copy this link:", p.tokenUrl);
+      }
+      return;
+    }
+    // Generate a token if missing
+    setGeneratingLink(p.id);
+    try {
+      const tokenRes = await fetch("/api/auth/participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: p.id,
+          studyId: id,
+          name: p.name,
+          prototypeVariant: study?.prototypeVariant,
+        }),
+      });
+      if (!tokenRes.ok) {
+        console.error("Token generation failed:", tokenRes.status);
+        return;
+      }
+      const tokenData = await tokenRes.json();
+      await updateDoc(doc(db, "participants", p.id), { tokenUrl: tokenData.url });
+      try {
+        await navigator.clipboard.writeText(tokenData.url);
+        setCopiedId(p.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch {
+        prompt("Copy this link:", tokenData.url);
+      }
+    } catch (err) {
+      console.error("Failed to generate link:", err);
+    } finally {
+      setGeneratingLink(null);
+    }
+  };
+
   const handleRemoveParticipant = async (participantId: string) => {
     try {
       await updateDoc(doc(db, "participants", participantId), {
@@ -753,22 +802,22 @@ export default function StudyDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {p.tokenUrl && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(p.tokenUrl!);
-                        } catch {
-                          prompt("Copy this link:", p.tokenUrl);
-                        }
-                      }}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
-                    >
-                      Copy Link
-                    </button>
-                  )}
                   <button
-                    onClick={() => handleRemoveParticipant(p.id)}
+                    onClick={() => handleCopyLink(p)}
+                    disabled={generatingLink === p.id}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50"
+                  >
+                    {generatingLink === p.id
+                      ? "Generating..."
+                      : copiedId === p.id
+                        ? "Copied!"
+                        : "Copy Link"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConfirmAction(() => () => handleRemoveParticipant(p.id));
+                      setConfirmMessage(`Remove "${p.name}" from this study?`);
+                    }}
                     className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     Remove
@@ -882,6 +931,45 @@ export default function StudyDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Confirm dialog */}
+      {confirmAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setConfirmAction(null);
+              setConfirmMessage("");
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-sm font-semibold text-white">Confirm</h2>
+            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction();
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

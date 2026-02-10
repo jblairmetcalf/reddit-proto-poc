@@ -259,7 +259,7 @@ export default function PrototypesPage() {
                         rel="noopener noreferrer"
                         className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
                       >
-                        Open Link &rarr;
+                        Preview &rarr;
                       </a>
                     ) : proto.fileName ? (
                       <span className="text-[10px] text-zinc-600">

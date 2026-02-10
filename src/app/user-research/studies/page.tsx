@@ -54,6 +54,8 @@ export default function StudiesPage() {
   const [selectedProtoKey, setSelectedProtoKey] = useState("");
   const [status, setStatus] = useState<"draft" | "active" | "completed">("draft");
   const [saving, setSaving] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   // Listen to studies
   useEffect(() => {
@@ -371,7 +373,10 @@ export default function StudiesPage() {
                   Edit
                 </button>
                 <button
-                  onClick={() => handleDelete(study.id)}
+                  onClick={() => {
+                    setConfirmAction(() => () => handleDelete(study.id));
+                    setConfirmMessage(`Delete "${study.name}"?`);
+                  }}
                   className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
                 >
                   Delete
@@ -379,6 +384,45 @@ export default function StudiesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirm dialog */}
+      {confirmAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setConfirmAction(null);
+              setConfirmMessage("");
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
+            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction();
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

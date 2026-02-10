@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -52,6 +53,8 @@ export default function ParticipantsPage() {
   const [editStudyId, setEditStudyId] = useState("");
   const [editStatus, setEditStatus] = useState<Participant["status"]>("invited");
   const [saving, setSaving] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, "participants"), (snap) => {
@@ -420,7 +423,9 @@ export default function ParticipantsPage() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Study: {getStudyName(p.studyId)}
+                    {p.studyId
+                      ? <>Study: <Link href={`/user-research/studies/${p.studyId}`} className="text-zinc-400 hover:text-orange-400 transition-colors">{getStudyName(p.studyId)}</Link></>
+                      : "No study assigned"}
                     {p.userType && ` · ${p.userType}`}
                     {p.email && ` · ${p.email}`}
                     {p.createdAt &&
@@ -435,7 +440,10 @@ export default function ParticipantsPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => {
+                      setConfirmAction(() => () => handleDelete(p.id));
+                      setConfirmMessage(`Delete "${p.name}"?`);
+                    }}
                     className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     Delete
@@ -444,6 +452,45 @@ export default function ParticipantsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirm dialog */}
+      {confirmAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setConfirmAction(null);
+              setConfirmMessage("");
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
+            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction();
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

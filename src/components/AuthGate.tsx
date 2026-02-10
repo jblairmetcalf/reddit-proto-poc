@@ -3,6 +3,20 @@
 import { useState, useEffect, type ReactNode } from "react";
 
 const PASSWORD = "uipux";
+const AUTH_KEY = "reddit-proto-auth";
+const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+function isAuthValid(): boolean {
+  try {
+    const stored = localStorage.getItem(AUTH_KEY);
+    if (!stored) return false;
+    const expiry = Number(stored);
+    if (isNaN(expiry)) return false;
+    return Date.now() < expiry;
+  } catch {
+    return false;
+  }
+}
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(false);
@@ -12,7 +26,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    if (sessionStorage.getItem("reddit-proto-auth") === "true") {
+    if (isAuthValid()) {
       setAuthed(true);
     }
   }, []);
@@ -24,7 +38,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input === PASSWORD) {
-      sessionStorage.setItem("reddit-proto-auth", "true");
+      localStorage.setItem(AUTH_KEY, String(Date.now() + TWENTY_FOUR_HOURS));
       setAuthed(true);
     } else {
       setError(true);

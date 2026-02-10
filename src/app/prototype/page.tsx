@@ -268,8 +268,8 @@ function PrototypeContent() {
             if (data.prototypeVariant && VARIANT_PRESETS[data.prototypeVariant]) {
               setVariantConfig(VARIANT_PRESETS[data.prototypeVariant]);
             }
-            // Bypass auth gate for valid participants
-            sessionStorage.setItem("reddit-proto-auth", "true");
+            // Bypass auth gate for valid participants (24h)
+            localStorage.setItem("reddit-proto-auth", String(Date.now() + 24 * 60 * 60 * 1000));
           }
         })
         .catch(console.error);

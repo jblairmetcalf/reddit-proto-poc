@@ -4,8 +4,8 @@ import Image from "next/image";
 const routes = [
   {
     href: "/prototype",
-    title: "Default Prototype",
-    description: "Open the default Reddit prototype",
+    title: "Coded Prototype",
+    description: "Open the coded Reddit prototype",
     external: true,
   },
   {
