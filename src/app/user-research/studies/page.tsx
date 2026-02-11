@@ -9,6 +9,9 @@ import {
   updateDoc,
   onSnapshot,
   deleteDoc,
+  getDocs,
+  query,
+  where,
   doc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -175,11 +178,33 @@ export default function StudiesPage() {
     }
   };
 
+  const [deleting, setDeleting] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
+    setDeleting(id);
     try {
+      // Delete outcomes subcollection
+      const outcomesSnap = await getDocs(collection(db, "studies", id, "outcomes"));
+      await Promise.all(outcomesSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete events for this study
+      const eventsSnap = await getDocs(query(collection(db, "events"), where("studyId", "==", id)));
+      await Promise.all(eventsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete survey responses for this study
+      const surveySnap = await getDocs(query(collection(db, "survey_responses"), where("studyId", "==", id)));
+      await Promise.all(surveySnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Unassign participants from this study (keep them in the platform)
+      const participantsSnap = await getDocs(query(collection(db, "participants"), where("studyId", "==", id)));
+      await Promise.all(participantsSnap.docs.map((d) => updateDoc(d.ref, { studyId: "", status: "invited", tokenUrl: null })));
+
+      // Delete the study itself
       await deleteDoc(doc(db, "studies", id));
     } catch (err) {
       console.error("Failed to delete study:", err);
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -344,20 +369,37 @@ export default function StudiesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {studies.map((study) => (
-            <Link
+            <div
               key={study.id}
-              href={`/user-research/studies/${study.id}`}
-              className="group rounded-xl border border-edge bg-card p-6 transition-colors hover:border-orange-600"
+              className="group relative rounded-xl border border-edge bg-card p-6 transition-colors hover:border-orange-600"
             >
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
-                  {study.name}
-                </h3>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status] || STATUS_STYLES.draft}`}
+              <Link
+                href={`/user-research/studies/${study.id}`}
+                className="absolute inset-0 rounded-xl"
+              />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
+                    {study.name}
+                  </h3>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status] || STATUS_STYLES.draft}`}
+                  >
+                    {study.status}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setConfirmAction(() => () => handleDelete(study.id));
+                    setConfirmMessage(`Delete "${study.name}" and all its events, survey responses, and outcomes? Participants will be unassigned but kept in the platform.`);
+                  }}
+                  disabled={deleting === study.id}
+                  className="relative z-10 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                 >
-                  {study.status}
-                </span>
+                  {deleting === study.id ? "Deleting..." : "Delete"}
+                </button>
               </div>
               {study.description && (
                 <p className="mt-2 text-sm text-secondary">
@@ -371,7 +413,7 @@ export default function StudiesPage() {
                 {study.createdAt &&
                   ` · Created ${new Date(study.createdAt.seconds * 1000).toLocaleDateString()}`}
               </p>
-            </Link>
+            </div>
           ))}
         </div>
       )}

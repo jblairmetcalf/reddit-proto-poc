@@ -18,7 +18,10 @@ export type TrackingEventType =
   | "sort_change"
   | "back_navigation"
   | "session_start"
-  | "session_end";
+  | "session_end"
+  | "survey_open"
+  | "survey_submit"
+  | "survey_dismiss";
 
 export interface TrackingEvent {
   type: TrackingEventType;

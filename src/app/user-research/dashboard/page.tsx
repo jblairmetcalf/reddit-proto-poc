@@ -7,6 +7,8 @@ import {
   query,
   onSnapshot,
   where,
+  getDocs,
+  deleteDoc,
   type QueryConstraint,
 } from "firebase/firestore";
 
@@ -73,10 +75,8 @@ function getDeviceLabel(device?: TrackingEvent["device"]): string {
 }
 
 export default function DashboardPage() {
-  const [events, setEvents] = useState<(TrackingEvent & { id: string })[]>([]);
+  const [allEvents, setAllEvents] = useState<(TrackingEvent & { id: string })[]>([]);
   const [connected, setConnected] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [summarizing, setSummarizing] = useState(false);
   const [studies, setStudies] = useState<Study[]>([]);
   const [selectedStudyId, setSelectedStudyId] = useState<string>("");
 
@@ -111,8 +111,7 @@ export default function DashboardPage() {
           ...(doc.data() as TrackingEvent),
         }));
         docs.sort((a, b) => b.timestamp - a.timestamp);
-        const limited = docs.slice(0, 100);
-        setEvents(limited);
+        setAllEvents(docs);
         setConnected(true);
       },
       (err) => {
@@ -124,13 +123,16 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [selectedStudyId]);
 
-  // Derived stats
-  const uniqueSessions = new Set(events.map((e) => e.sessionId)).size;
+  // Stream limited to 100 most recent for display
+  const streamEvents = allEvents.slice(0, 100);
+
+  // Derived stats from ALL events
+  const uniqueSessions = new Set(allEvents.map((e) => e.sessionId)).size;
   const uniqueParticipants = new Set(
-    events.filter((e) => e.participantId).map((e) => e.participantId)
+    allEvents.filter((e) => e.participantId).map((e) => e.participantId)
   ).size;
   const eventsByType: Record<string, number> = {};
-  for (const e of events) {
+  for (const e of allEvents) {
     eventsByType[e.type] = (eventsByType[e.type] || 0) + 1;
   }
   const sortedTypes = Object.entries(eventsByType).sort(
@@ -140,11 +142,11 @@ export default function DashboardPage() {
   // Variant comparison stats
   const variantStats = (() => {
     if (!selectedStudyId) return null;
-    const variants = new Set(events.map((e) => e.variant).filter(Boolean));
+    const variants = new Set(allEvents.map((e) => e.variant).filter(Boolean));
     if (variants.size <= 1) return null;
 
     const stats: Record<string, { events: number; sessions: Set<string>; topActions: Record<string, number> }> = {};
-    for (const e of events) {
+    for (const e of allEvents) {
       const v = e.variant || "unknown";
       if (!stats[v]) stats[v] = { events: 0, sessions: new Set(), topActions: {} };
       stats[v].events++;
@@ -156,40 +158,24 @@ export default function DashboardPage() {
 
   const selectedStudy = studies.find((s) => s.id === selectedStudyId);
 
-  const handleSummarize = async () => {
-    setSummarizing(true);
-    setSummary(null);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleClearEvents = async (studyFilter?: string) => {
+    setDeleting(true);
     try {
-      const res = await fetch("/api/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: events.slice(0, 50).map((e) => ({
-            type: e.type,
-            sessionId: e.sessionId,
-            participantId: e.participantId,
-            studyId: e.studyId,
-            variant: e.variant,
-            timestamp: e.timestamp,
-            data: e.data,
-          })),
-          ...(selectedStudy && {
-            studyId: selectedStudy.id,
-            studyName: selectedStudy.name,
-            variant: selectedStudy.prototypeVariant,
-          }),
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSummary(data.summary);
-      } else {
-        setSummary("Failed to generate summary.");
+      const constraints: QueryConstraint[] = [];
+      if (studyFilter) {
+        constraints.push(where("studyId", "==", studyFilter));
       }
-    } catch {
-      setSummary("Error connecting to summarize API.");
+      const q = query(collection(db, "events"), ...constraints);
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    } catch (err) {
+      console.error("Failed to clear events:", err);
     } finally {
-      setSummarizing(false);
+      setDeleting(false);
     }
   };
 
@@ -205,10 +191,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <select
             value={selectedStudyId}
-            onChange={(e) => {
-              setSelectedStudyId(e.target.value);
-              setSummary(null);
-            }}
+            onChange={(e) => setSelectedStudyId(e.target.value)}
             className="rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
           >
             <option value="">All Studies</option>
@@ -219,11 +202,20 @@ export default function DashboardPage() {
             ))}
           </select>
           <button
-            onClick={handleSummarize}
-            disabled={summarizing || events.length === 0}
-            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              if (selectedStudyId) {
+                const studyName = selectedStudy?.name || selectedStudyId;
+                setConfirmAction(() => () => handleClearEvents(selectedStudyId));
+                setConfirmMessage(`Delete all tracking events for "${studyName}"?`);
+              } else {
+                setConfirmAction(() => () => handleClearEvents());
+                setConfirmMessage("Delete all tracking events across all studies?");
+              }
+            }}
+            disabled={deleting || allEvents.length === 0}
+            className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {summarizing ? "Summarizing..." : "AI Summary"}
+            {deleting ? "Clearing..." : selectedStudyId ? "Clear Study Events" : "Clear All Events"}
           </button>
           <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
@@ -242,30 +234,13 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* AI Summary */}
-      {summary && (
-        <div className="mb-6 rounded-xl border border-purple-500/30 bg-purple-500/10 p-5">
-          <h3 className="mb-2 text-sm font-semibold text-purple-400">
-            AI Summary
-            {selectedStudy && (
-              <span className="ml-2 text-xs font-normal text-purple-300">
-                — {selectedStudy.name} ({selectedStudy.prototypeVariant})
-              </span>
-            )}
-          </h3>
-          <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">
-            {summary}
-          </p>
-        </div>
-      )}
-
       {/* Stats cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-edge bg-card p-4">
           <p className="text-xs font-medium uppercase text-muted">
             Total Events
           </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">{events.length}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{allEvents.length}</p>
         </div>
         <div className="rounded-xl border border-edge bg-card p-4">
           <p className="text-xs font-medium uppercase text-muted">
@@ -355,7 +330,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {sortedTypes.map(([type, count]) => {
-                const pct = Math.round((count / events.length) * 100);
+                const pct = Math.round((count / allEvents.length) * 100);
                 return (
                   <div key={type}>
                     <div className="mb-1 flex items-center justify-between text-xs">
@@ -382,7 +357,7 @@ export default function DashboardPage() {
           <h2 className="mb-4 text-sm font-semibold text-foreground">
             Live Event Stream
           </h2>
-          {events.length === 0 ? (
+          {streamEvents.length === 0 ? (
             <p className="text-sm text-muted">
               Waiting for events... Open{" "}
               <a
@@ -396,7 +371,7 @@ export default function DashboardPage() {
             </p>
           ) : (
             <div className="max-h-[500px] space-y-2 overflow-y-auto pr-2">
-              {events.map((event) => {
+              {streamEvents.map((event) => {
                 const colorClass =
                   EVENT_COLORS[event.type] ||
                   "bg-subtle/30 text-secondary border-edge-strong/30";
@@ -452,6 +427,60 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Confirm dialog */}
+      {confirmAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setConfirmAction(null);
+              setConfirmMessage("");
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+              if (e.key === "Enter") {
+                confirmAction();
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+            }}
+          >
+            <h2 className="text-sm font-semibold text-foreground">Confirm</h2>
+            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction();
+                  setConfirmAction(null);
+                  setConfirmMessage("");
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

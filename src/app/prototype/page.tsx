@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import RedditMobile from "@/components/prototype/RedditMobile";
+import SurveyOverlay from "@/components/prototype/SurveyOverlay";
 import { useTracking } from "@/hooks/useTracking";
+import { getSessionId } from "@/lib/tracking";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { mapRedditPost, mapRedditComment, mapRedditSubreddit } from "@/lib/reddit-mapper";
 import { VARIANT_PRESETS, type VariantConfig } from "@/lib/variants";
 import type { PrototypePost, PrototypeComment, PrototypeSubreddit } from "@/lib/types/prototype";
@@ -268,6 +272,13 @@ function PrototypeContent() {
             if (data.prototypeVariant && VARIANT_PRESETS[data.prototypeVariant]) {
               setVariantConfig(VARIANT_PRESETS[data.prototypeVariant]);
             }
+            // Update participant status to viewed (only if currently invited)
+            const pRef = doc(db, "participants", data.participantId);
+            getDoc(pRef).then((snap) => {
+              if (snap.exists() && snap.data().status === "invited") {
+                updateDoc(pRef, { status: "viewed" });
+              }
+            }).catch(console.error);
             // Bypass auth gate for valid participants (24h)
             localStorage.setItem("reddit-proto-auth", String(Date.now() + 24 * 60 * 60 * 1000));
           }
@@ -381,6 +392,15 @@ function PrototypeContent() {
           />
         </div>
       </div>
+      {isParticipant && participantId && studyId && (
+        <SurveyOverlay
+          participantId={participantId}
+          studyId={studyId}
+          variant={variantConfig?.id}
+          sessionId={getSessionId()}
+          onTrack={handleTrack}
+        />
+      )}
     </>
   );
 }

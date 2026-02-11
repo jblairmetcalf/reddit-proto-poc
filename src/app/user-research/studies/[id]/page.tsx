@@ -50,6 +50,18 @@ interface StudyOutcome {
   createdAt?: { seconds: number };
 }
 
+interface SurveyResponse {
+  id: string;
+  participantId: string;
+  studyId: string;
+  variant: string | null;
+  easeOfUse: "easy" | "neutral" | "difficult";
+  foundContent: "easy" | "neutral" | "difficult";
+  satisfaction: "easy" | "neutral" | "difficult";
+  feedback: string | null;
+  submittedAt: number;
+}
+
 interface Prototyper {
   id: string;
   name: string;
@@ -71,6 +83,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 const PARTICIPANT_STATUS_STYLES: Record<string, string> = {
   invited: "bg-amber-500/20 text-amber-400",
+  viewed: "bg-cyan-500/20 text-cyan-400",
   active: "bg-green-500/20 text-green-400",
   completed: "bg-blue-500/20 text-blue-400",
   timed_out: "bg-red-500/20 text-red-400",
@@ -104,6 +117,9 @@ export default function StudyDetailPage() {
   const [outcomeDecidedBy, setOutcomeDecidedBy] = useState("");
   const [outcomeNextSteps, setOutcomeNextSteps] = useState("");
   const [savingOutcome, setSavingOutcome] = useState(false);
+  const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
 
   // Add participant state
   const [showAddParticipant, setShowAddParticipant] = useState(false);
@@ -181,6 +197,20 @@ export default function StudyDetailPage() {
       }));
       docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
       setOutcomes(docs);
+    });
+    return () => unsub();
+  }, [id]);
+
+  // Listen to survey responses
+  useEffect(() => {
+    const q = query(collection(db, "survey_responses"), where("studyId", "==", id));
+    const unsub = onSnapshot(q, (snap) => {
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<SurveyResponse, "id">),
+      }));
+      docs.sort((a, b) => b.submittedAt - a.submittedAt);
+      setSurveyResponses(docs);
     });
     return () => unsub();
   }, [id]);
@@ -397,6 +427,44 @@ export default function StudyDetailPage() {
     }
   };
 
+  const handleSummarizeSurvey = async () => {
+    if (surveyResponses.length === 0) return;
+    setSummarizing(true);
+    setSummary(null);
+    try {
+      const res = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: surveyResponses.map((r) => ({
+            type: "survey_response",
+            participantId: r.participantId,
+            studyId: r.studyId,
+            timestamp: r.submittedAt,
+            data: {
+              easeOfUse: r.easeOfUse,
+              foundContent: r.foundContent,
+              satisfaction: r.satisfaction,
+              feedback: r.feedback,
+            },
+          })),
+          studyId: id,
+          studyName: study?.name,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSummary(data.summary);
+      } else {
+        setSummary("Failed to generate summary.");
+      }
+    } catch {
+      setSummary("Error connecting to summarize API.");
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
   // Participants not already assigned to this study
   const unassignedParticipants = allParticipants.filter(
     (p) => p.studyId !== id
@@ -454,15 +522,6 @@ export default function StudyDetailPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {study.prototypeVariant && (
-              <Link
-                href={`/prototype?variant=${study.prototypeVariant}`}
-                target="_blank"
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-              >
-                Preview Prototype
-              </Link>
-            )}
             <button
               onClick={openEditStudy}
               className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
@@ -608,6 +667,15 @@ export default function StudyDetailPage() {
           <p className="mt-1 text-lg font-bold text-foreground">
             {study.prototypeTitle || "None selected"}
           </p>
+          {study.prototypeVariant && (
+            <Link
+              href={`/prototype?variant=${study.prototypeVariant}`}
+              target="_blank"
+              className="mt-2 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+            >
+              Preview
+            </Link>
+          )}
         </div>
         <div className="rounded-xl border border-edge bg-card p-4">
           <p className="text-xs font-medium uppercase text-muted">
@@ -846,6 +914,115 @@ export default function StudyDetailPage() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Survey Responses */}
+      <div className="mt-8 rounded-xl border border-edge bg-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Survey Responses</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">{surveyResponses.length} response{surveyResponses.length !== 1 ? "s" : ""}</span>
+            {surveyResponses.length > 0 && (
+              <button
+                onClick={handleSummarizeSurvey}
+                disabled={summarizing}
+                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {summarizing ? "Summarizing..." : "AI Summary"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {summary && (
+          <div className="mb-4 rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
+            <h3 className="mb-2 text-xs font-semibold text-purple-400">AI Summary</h3>
+            <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">{summary}</p>
+          </div>
+        )}
+
+        {surveyResponses.length === 0 ? (
+          <p className="text-sm text-muted">
+            No survey responses yet. Participants can submit feedback from the prototype view.
+          </p>
+        ) : (
+          <>
+            {/* Aggregate stats */}
+            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+              {([
+                ["Ease of Use", "easeOfUse"],
+                ["Found Content", "foundContent"],
+                ["Satisfaction", "satisfaction"],
+              ] as const).map(([label, key]) => {
+                const counts = { easy: 0, neutral: 0, difficult: 0 };
+                for (const r of surveyResponses) counts[r[key]]++;
+                const total = surveyResponses.length;
+                return (
+                  <div key={key} className="rounded-lg border border-edge-strong bg-input p-3">
+                    <p className="text-xs font-medium text-secondary mb-2">{label}</p>
+                    <div className="space-y-1.5">
+                      {(["easy", "neutral", "difficult"] as const).map((rating) => {
+                        const pct = total > 0 ? Math.round((counts[rating] / total) * 100) : 0;
+                        return (
+                          <div key={rating} className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted w-14 capitalize">{rating}</span>
+                            <div className="flex-1 h-2 rounded-full bg-subtle overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  rating === "easy"
+                                    ? "bg-green-500"
+                                    : rating === "neutral"
+                                      ? "bg-amber-500"
+                                      : "bg-red-500"
+                                }`}
+                                style={{ width: `${pct}%`, transition: "width 300ms ease" }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-muted w-8 text-right">{counts[rating]}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Individual responses */}
+            <div className="space-y-2">
+              {surveyResponses.map((r) => {
+                const participant = participants.find((p) => p.id === r.participantId);
+                return (
+                  <div key={r.id} className="rounded-lg border border-edge-strong bg-input p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-foreground">
+                        {participant?.name || r.participantId}
+                      </span>
+                      <span className="text-[10px] text-faint">
+                        {new Date(r.submittedAt).toLocaleDateString()}{" "}
+                        {new Date(r.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px]">
+                      <span className="text-muted">
+                        Ease: <span className="text-secondary capitalize">{r.easeOfUse}</span>
+                      </span>
+                      <span className="text-muted">
+                        Found: <span className="text-secondary capitalize">{r.foundContent}</span>
+                      </span>
+                      <span className="text-muted">
+                        Satisfaction: <span className="text-secondary capitalize">{r.satisfaction}</span>
+                      </span>
+                    </div>
+                    {r.feedback && (
+                      <p className="mt-2 text-xs text-secondary italic">&ldquo;{r.feedback}&rdquo;</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

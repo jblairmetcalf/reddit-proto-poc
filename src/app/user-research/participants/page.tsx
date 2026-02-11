@@ -80,38 +80,16 @@ export default function ParticipantsPage() {
     };
   }, []);
 
-  const handleInvite = async () => {
-    if (!name.trim() || !studyId) return;
+  const handleAdd = async () => {
+    if (!name.trim()) return;
     setCreating(true);
 
     try {
-      // Generate participant token with study's variant
-      const selectedStudy = studies.find((s) => s.id === studyId);
-      const tokenRes = await fetch("/api/auth/participant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          participantId: `p-${Date.now()}`,
-          studyId,
-          name: name.trim(),
-          prototypeVariant: selectedStudy?.prototypeVariant,
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        console.error("Token generation failed:", tokenRes.status);
-        alert("Failed to generate invite link. Please try again.");
-        return;
-      }
-
-      const tokenData = await tokenRes.json();
-
       await addDoc(collection(db, "participants"), {
         name: name.trim(),
         email: email.trim() || null,
-        studyId,
+        studyId: studyId || "",
         status: "invited",
-        tokenUrl: tokenData.url,
         createdAt: serverTimestamp(),
       });
 
@@ -120,7 +98,7 @@ export default function ParticipantsPage() {
       setStudyId("");
       setShowInvite(false);
     } catch (err) {
-      console.error("Failed to invite participant:", err);
+      console.error("Failed to add participant:", err);
     } finally {
       setCreating(false);
     }
@@ -177,14 +155,14 @@ export default function ParticipantsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Participants</h1>
           <p className="mt-1 text-sm text-secondary">
-            Manage participants and generate invite links
+            Manage participants
           </p>
         </div>
         <button
           onClick={() => setShowInvite(true)}
           className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500"
         >
-          Invite Participant
+          Add Participant
         </button>
       </header>
 
@@ -212,13 +190,13 @@ export default function ParticipantsPage() {
               }
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
-                handleInvite();
+                handleAdd();
               }
             }}
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">
-                Invite Participant
+                Add Participant
               </h2>
               <button
                 onClick={() => {
@@ -260,25 +238,20 @@ export default function ParticipantsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-secondary">
-                  Study
+                  Study (optional)
                 </label>
                 <select
                   value={studyId}
                   onChange={(e) => setStudyId(e.target.value)}
                   className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                 >
-                  <option value="">Select a study...</option>
+                  <option value="">No study</option>
                   {studies.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
                   ))}
                 </select>
-                {studies.length === 0 && (
-                  <p className="mt-1 text-xs text-faint">
-                    Create a study first in the Studies tab.
-                  </p>
-                )}
               </div>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
@@ -293,11 +266,11 @@ export default function ParticipantsPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleInvite}
-                  disabled={!name.trim() || !studyId || creating}
+                  onClick={handleAdd}
+                  disabled={!name.trim() || creating}
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {creating ? "Generating link..." : "Generate Invite Link"}
+                  {creating ? "Adding..." : "Add Participant"}
                 </button>
               </div>
             </div>
@@ -420,7 +393,7 @@ export default function ParticipantsPage() {
       {participants.length === 0 ? (
         <div className="rounded-xl border border-dashed border-edge p-12 text-center">
           <p className="text-sm text-muted">
-            No participants yet. Invite one to get started.
+            No participants yet. Add one to get started.
           </p>
         </div>
       ) : (
@@ -441,11 +414,6 @@ export default function ParticipantsPage() {
                         {p.persona}
                       </span>
                     )}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[p.status] || STATUS_STYLES.invited}`}
-                    >
-                      {p.status}
-                    </span>
                   </div>
                   <p className="mt-1 text-xs text-muted">
                     {p.studyId
