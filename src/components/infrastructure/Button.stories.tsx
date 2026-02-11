@@ -53,6 +53,7 @@ export const Disabled: Story = {
 
 export const AllVariants: Story = {
   name: "All variants",
+  args: { children: "Primary" },
   render: () => (
     <div className="flex flex-wrap items-center gap-3">
       <Button>Primary</Button>

@@ -27,6 +27,7 @@ export const WithUndo: Story = {
 };
 
 export const Interactive: Story = {
+  args: { message: "Action completed!", onDismiss: fn() },
   render: () => {
     const [toast, setToast] = useState<{
       message: string;

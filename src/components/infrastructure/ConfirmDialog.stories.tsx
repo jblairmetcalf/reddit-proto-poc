@@ -39,6 +39,7 @@ export const DefaultVariant: Story = {
 };
 
 export const Interactive: Story = {
+  args: { open: false, onClose: fn(), onConfirm: fn(), message: "" },
   render: () => {
     const [open, setOpen] = useState(false);
     const [result, setResult] = useState<string | null>(null);
