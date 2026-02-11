@@ -52,7 +52,7 @@ const EVENT_COLORS: Record<string, string> = {
 };
 
 const VARIANT_COLORS: Record<string, string> = {
-  default: "bg-zinc-700 text-zinc-300",
+  default: "bg-subtle text-secondary",
   "variant-a": "bg-blue-500/20 text-blue-400",
   "variant-b": "bg-green-500/20 text-green-400",
   "variant-c": "bg-purple-500/20 text-purple-400",
@@ -197,8 +197,8 @@ export default function DashboardPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Live Dashboard</h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-foreground">Live Dashboard</h1>
+          <p className="mt-1 text-sm text-secondary">
             Real-time event stream from prototype interactions
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function DashboardPage() {
               setSelectedStudyId(e.target.value);
               setSummary(null);
             }}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+            className="rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
           >
             <option value="">All Studies</option>
             {studies.map((s) => (
@@ -229,12 +229,12 @@ export default function DashboardPage() {
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
               connected
                 ? "bg-green-500/20 text-green-400"
-                : "bg-zinc-700 text-zinc-400"
+                : "bg-subtle text-secondary"
             }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${
-                connected ? "bg-green-400 animate-pulse" : "bg-zinc-500"
+                connected ? "bg-green-400 animate-pulse" : "bg-muted"
               }`}
             />
             {connected ? "Connected" : "Connecting..."}
@@ -253,7 +253,7 @@ export default function DashboardPage() {
               </span>
             )}
           </h3>
-          <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
+          <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">
             {summary}
           </p>
         </div>
@@ -261,33 +261,33 @@ export default function DashboardPage() {
 
       {/* Stats cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Total Events
           </p>
-          <p className="mt-1 text-2xl font-bold text-white">{events.length}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{events.length}</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Sessions
           </p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-foreground">
             {uniqueSessions}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Participants
           </p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-foreground">
             {uniqueParticipants}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Event Types
           </p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-foreground">
             {sortedTypes.length}
           </p>
         </div>
@@ -295,8 +295,8 @@ export default function DashboardPage() {
 
       {/* Variant Comparison */}
       {variantStats && (
-        <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
+        <div className="mb-8 rounded-xl border border-edge bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             Variant Comparison
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -307,7 +307,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={variant}
-                  className="rounded-lg border border-zinc-700 bg-zinc-800 p-4"
+                  className="rounded-lg border border-edge-strong bg-input p-4"
                 >
                   <div className="mb-3 flex items-center gap-2">
                     <span
@@ -318,19 +318,19 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Events</span>
-                      <span className="font-medium text-white">{stats.events}</span>
+                      <span className="text-muted">Events</span>
+                      <span className="font-medium text-foreground">{stats.events}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Sessions</span>
-                      <span className="font-medium text-white">{stats.sessions.size}</span>
+                      <span className="text-muted">Sessions</span>
+                      <span className="font-medium text-foreground">{stats.sessions.size}</span>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-zinc-700">
-                      <p className="text-zinc-500 mb-1">Top actions</p>
+                    <div className="mt-2 pt-2 border-t border-edge-strong">
+                      <p className="text-muted mb-1">Top actions</p>
                       {topActions.map(([action, count]) => (
                         <div key={action} className="flex justify-between">
-                          <span className="font-mono text-zinc-400">{action}</span>
-                          <span className="text-zinc-500">{count}</span>
+                          <span className="font-mono text-secondary">{action}</span>
+                          <span className="text-muted">{count}</span>
                         </div>
                       ))}
                     </div>
@@ -344,12 +344,12 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Event type breakdown */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
+        <div className="rounded-xl border border-edge bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             Event Breakdown
           </h2>
           {sortedTypes.length === 0 ? (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted">
               No events yet. Interact with the prototype to see data.
             </p>
           ) : (
@@ -359,12 +359,12 @@ export default function DashboardPage() {
                 return (
                   <div key={type}>
                     <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="font-mono text-zinc-400">{type}</span>
-                      <span className="text-zinc-500">
+                      <span className="font-mono text-secondary">{type}</span>
+                      <span className="text-muted">
                         {count} ({pct}%)
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-zinc-800">
+                    <div className="h-1.5 rounded-full bg-input">
                       <div
                         className="h-1.5 rounded-full bg-orange-500 transition-all"
                         style={{ width: `${pct}%` }}
@@ -378,12 +378,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Live event stream */}
-        <div className="lg:col-span-2 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">
+        <div className="lg:col-span-2 rounded-xl border border-edge bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             Live Event Stream
           </h2>
           {events.length === 0 ? (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted">
               Waiting for events... Open{" "}
               <a
                 href="/prototype"
@@ -399,11 +399,11 @@ export default function DashboardPage() {
               {events.map((event) => {
                 const colorClass =
                   EVENT_COLORS[event.type] ||
-                  "bg-zinc-700/30 text-zinc-400 border-zinc-600/30";
+                  "bg-subtle/30 text-secondary border-edge-strong/30";
                 return (
                   <div
                     key={event.id}
-                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3"
+                    className="flex items-start gap-3 rounded-lg border border-edge bg-background/50 p-3"
                   >
                     <span
                       className={`mt-0.5 shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${colorClass}`}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
                       {event.type}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <div className="flex items-center gap-2 text-xs text-muted">
                         <span>{formatTime(event.timestamp)}</span>
                         <span>&middot;</span>
                         <span className="font-mono truncate">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
                       </div>
                       {event.data &&
                         Object.keys(event.data).length > 0 && (
-                          <pre className="mt-1 text-[11px] leading-relaxed text-zinc-600 truncate">
+                          <pre className="mt-1 text-[11px] leading-relaxed text-faint truncate">
                             {JSON.stringify(event.data)}
                           </pre>
                         )}

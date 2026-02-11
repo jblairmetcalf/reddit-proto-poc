@@ -64,7 +64,7 @@ interface Prototype {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-300",
+  draft: "bg-subtle text-secondary",
   active: "bg-green-500/20 text-green-400",
   completed: "bg-blue-500/20 text-blue-400",
 };
@@ -405,7 +405,7 @@ export default function StudyDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <p className="text-zinc-500">Loading study...</p>
+        <p className="text-muted">Loading study...</p>
       </div>
     );
   }
@@ -413,7 +413,7 @@ export default function StudyDetailPage() {
   if (!study) {
     return (
       <div className="p-8">
-        <p className="text-zinc-500">Study not found.</p>
+        <p className="text-muted">Study not found.</p>
         <Link
           href="/user-research/studies"
           className="mt-2 inline-block text-sm text-orange-400 hover:underline"
@@ -429,14 +429,14 @@ export default function StudyDetailPage() {
       <header className="mb-6">
         <Link
           href="/user-research/studies"
-          className="mb-3 inline-block text-sm text-zinc-500 hover:text-white transition-colors"
+          className="mb-3 inline-block text-sm text-muted hover:text-foreground transition-colors"
         >
           &larr; Back to Studies
         </Link>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">{study.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{study.name}</h1>
               <span
                 className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status]}`}
               >
@@ -444,10 +444,10 @@ export default function StudyDetailPage() {
               </span>
             </div>
             {study.description && (
-              <p className="mt-1 text-sm text-zinc-400">{study.description}</p>
+              <p className="mt-1 text-sm text-secondary">{study.description}</p>
             )}
             {study.createdAt && (
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="mt-1 text-xs text-faint">
                 Created{" "}
                 {new Date(study.createdAt.seconds * 1000).toLocaleDateString()}
               </p>
@@ -458,14 +458,14 @@ export default function StudyDetailPage() {
               <Link
                 href={`/prototype?variant=${study.prototypeVariant}`}
                 target="_blank"
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-orange-500 hover:text-orange-400"
+                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
               >
                 Preview Prototype
               </Link>
             )}
             <button
               onClick={openEditStudy}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-orange-500 hover:text-orange-400"
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
             >
               Edit
             </button>
@@ -483,13 +483,13 @@ export default function StudyDetailPage() {
       {/* Edit Study dialog */}
       {showEditStudy && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowEditStudy(false);
           }}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
               if (e.key === "Escape") setShowEditStudy(false);
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
@@ -499,17 +499,17 @@ export default function StudyDetailPage() {
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Edit Study</h2>
+              <h2 className="text-sm font-semibold text-foreground">Edit Study</h2>
               <button
                 onClick={() => setShowEditStudy(false)}
-                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Study Name
                 </label>
                 <input
@@ -518,11 +518,11 @@ export default function StudyDetailPage() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="e.g., Feed Sorting Experiment"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Description
                 </label>
                 <textarea
@@ -530,18 +530,18 @@ export default function StudyDetailPage() {
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder="What are you testing?"
                   rows={3}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
                 />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     Prototype
                   </label>
                   <select
                     value={editProtoKey}
                     onChange={(e) => setEditProtoKey(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                   >
                     <option value="">Select a prototype...</option>
                     {prototypers.map((p) => {
@@ -565,7 +565,7 @@ export default function StudyDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     Status
                   </label>
                   <select
@@ -573,7 +573,7 @@ export default function StudyDetailPage() {
                     onChange={(e) =>
                       setEditStatus(e.target.value as "draft" | "active" | "completed")
                     }
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                   >
                     <option value="draft">Draft</option>
                     <option value="active">Active</option>
@@ -584,7 +584,7 @@ export default function StudyDetailPage() {
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   onClick={() => setShowEditStudy(false)}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -603,32 +603,32 @@ export default function StudyDetailPage() {
 
       {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">Prototype</p>
-          <p className="mt-1 text-lg font-bold text-white">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">Prototype</p>
+          <p className="mt-1 text-lg font-bold text-foreground">
             {study.prototypeTitle || "None selected"}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Participants
           </p>
-          <p className="mt-1 text-lg font-bold text-white">
+          <p className="mt-1 text-lg font-bold text-foreground">
             {participants.length}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs font-medium uppercase text-zinc-500">
+        <div className="rounded-xl border border-edge bg-card p-4">
+          <p className="text-xs font-medium uppercase text-muted">
             Events Tracked
           </p>
-          <p className="mt-1 text-lg font-bold text-white">{eventCount}</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{eventCount}</p>
         </div>
       </div>
 
       {/* Participants */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="rounded-xl border border-edge bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Participants</h2>
+          <h2 className="text-sm font-semibold text-foreground">Participants</h2>
           <button
             onClick={() => {
               setAddMode("existing");
@@ -646,13 +646,13 @@ export default function StudyDetailPage() {
         {/* Add Participant dialog */}
         {showAddParticipant && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowAddParticipant(false);
             }}
           >
             <div
-              className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+              className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
               onKeyDown={(e) => {
                 if (e.key === "Escape") setShowAddParticipant(false);
                 if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
@@ -663,25 +663,25 @@ export default function StudyDetailPage() {
               }}
             >
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white">
+                <h2 className="text-sm font-semibold text-foreground">
                   Add Participant
                 </h2>
                 <button
                   onClick={() => setShowAddParticipant(false)}
-                  className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
                 >
                   &times;
                 </button>
               </div>
 
               {/* Mode tabs */}
-              <div className="mb-4 flex rounded-lg border border-zinc-700 bg-zinc-800 p-0.5">
+              <div className="mb-4 flex rounded-lg border border-edge-strong bg-input p-0.5">
                 <button
                   onClick={() => setAddMode("existing")}
                   className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     addMode === "existing"
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-500 hover:text-white"
+                      ? "bg-subtle text-foreground"
+                      : "text-muted hover:text-foreground"
                   }`}
                 >
                   Existing Participant
@@ -690,8 +690,8 @@ export default function StudyDetailPage() {
                   onClick={() => setAddMode("new")}
                   className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     addMode === "new"
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-500 hover:text-white"
+                      ? "bg-subtle text-foreground"
+                      : "text-muted hover:text-foreground"
                   }`}
                 >
                   Create New
@@ -701,13 +701,13 @@ export default function StudyDetailPage() {
               {addMode === "existing" ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1 block text-xs font-medium text-secondary">
                       Select Participant
                     </label>
                     <select
                       value={selectedParticipantId}
                       onChange={(e) => setSelectedParticipantId(e.target.value)}
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                     >
                       <option value="">Choose a participant...</option>
                       {unassignedParticipants.map((p) => (
@@ -718,7 +718,7 @@ export default function StudyDetailPage() {
                       ))}
                     </select>
                     {unassignedParticipants.length === 0 && (
-                      <p className="mt-1 text-xs text-zinc-600">
+                      <p className="mt-1 text-xs text-faint">
                         All participants are already assigned. Create a new one
                         instead.
                       </p>
@@ -727,7 +727,7 @@ export default function StudyDetailPage() {
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <button
                       onClick={() => setShowAddParticipant(false)}
-                      className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                      className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                     >
                       Cancel
                     </button>
@@ -743,7 +743,7 @@ export default function StudyDetailPage() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1 block text-xs font-medium text-secondary">
                       Name
                     </label>
                     <input
@@ -751,11 +751,11 @@ export default function StudyDetailPage() {
                       value={newParticipantName}
                       onChange={(e) => setNewParticipantName(e.target.value)}
                       placeholder="e.g., Jane Doe"
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1 block text-xs font-medium text-secondary">
                       Email (optional)
                     </label>
                     <input
@@ -763,13 +763,13 @@ export default function StudyDetailPage() {
                       value={newParticipantEmail}
                       onChange={(e) => setNewParticipantEmail(e.target.value)}
                       placeholder="participant@example.com"
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                     />
                   </div>
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <button
                       onClick={() => setShowAddParticipant(false)}
-                      className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                      className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                     >
                       Cancel
                     </button>
@@ -788,7 +788,7 @@ export default function StudyDetailPage() {
         )}
 
         {participants.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             No participants assigned to this study yet.
           </p>
         ) : (
@@ -796,11 +796,11 @@ export default function StudyDetailPage() {
             {participants.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-edge-strong bg-input px-4 py-3"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-white">{p.name}</p>
+                    <p className="text-sm font-medium text-foreground">{p.name}</p>
                     {p.persona && (
                       <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                         {p.persona}
@@ -815,7 +815,7 @@ export default function StudyDetailPage() {
                       {p.status}
                     </span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                     {p.userType && <span>{p.userType}</span>}
                     {p.userType && p.email && <span>&middot;</span>}
                     {p.email && <span>{p.email}</span>}
@@ -825,7 +825,7 @@ export default function StudyDetailPage() {
                   <button
                     onClick={() => handleCopyLink(p)}
                     disabled={generatingLink === p.id}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50"
+                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50"
                   >
                     {generatingLink === p.id
                       ? "Generating..."
@@ -838,7 +838,7 @@ export default function StudyDetailPage() {
                       setConfirmAction(() => () => handleRemoveParticipant(p.id));
                       setConfirmMessage(`Remove "${p.name}" from this study?`);
                     }}
-                    className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     Remove
                   </button>
@@ -850,9 +850,9 @@ export default function StudyDetailPage() {
       </div>
 
       {/* Study Outcomes */}
-      <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="mt-8 rounded-xl border border-edge bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Study Outcomes</h2>
+          <h2 className="text-sm font-semibold text-foreground">Study Outcomes</h2>
           <button
             onClick={() => setShowOutcomeForm(!showOutcomeForm)}
             className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-500"
@@ -862,46 +862,46 @@ export default function StudyDetailPage() {
         </div>
 
         {showOutcomeForm && (
-          <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 p-4 space-y-3">
+          <div className="mb-4 rounded-lg border border-edge-strong bg-input p-4 space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">Decision</label>
+              <label className="mb-1 block text-xs font-medium text-secondary">Decision</label>
               <input
                 type="text"
                 value={outcomeDecision}
                 onChange={(e) => setOutcomeDecision(e.target.value)}
                 placeholder="e.g., Proceed with variant-a for production"
-                className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+                className="w-full rounded-lg border border-edge-strong bg-subtle px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">Rationale</label>
+              <label className="mb-1 block text-xs font-medium text-secondary">Rationale</label>
               <textarea
                 value={outcomeRationale}
                 onChange={(e) => setOutcomeRationale(e.target.value)}
                 placeholder="Why was this decision made?"
                 rows={3}
-                className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none resize-none"
+                className="w-full rounded-lg border border-edge-strong bg-subtle px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-orange-500 focus:outline-none resize-none"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Decided By</label>
+                <label className="mb-1 block text-xs font-medium text-secondary">Decided By</label>
                 <input
                   type="text"
                   value={outcomeDecidedBy}
                   onChange={(e) => setOutcomeDecidedBy(e.target.value)}
                   placeholder="e.g., VP Product, Leadership Team"
-                  className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-subtle px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Next Steps</label>
+                <label className="mb-1 block text-xs font-medium text-secondary">Next Steps</label>
                 <input
                   type="text"
                   value={outcomeNextSteps}
                   onChange={(e) => setOutcomeNextSteps(e.target.value)}
                   placeholder="e.g., Ship to 10% of users in Q2"
-                  className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-subtle px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-orange-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -916,33 +916,33 @@ export default function StudyDetailPage() {
         )}
 
         {outcomes.length === 0 && !showOutcomeForm ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             No outcomes recorded yet. Add a decision when leadership responds to the results.
           </p>
         ) : (
           <div className="space-y-3">
             {outcomes.map((o) => (
-              <div key={o.id} className="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
+              <div key={o.id} className="rounded-lg border border-edge-strong bg-input p-4">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-sm font-semibold text-white">{o.decision}</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{o.decision}</h3>
                   {o.createdAt && (
-                    <span className="text-[10px] text-zinc-600 flex-shrink-0 ml-3">
+                    <span className="text-[10px] text-faint flex-shrink-0 ml-3">
                       {new Date(o.createdAt.seconds * 1000).toLocaleDateString()}
                     </span>
                   )}
                 </div>
                 {o.rationale && (
-                  <p className="mt-2 text-xs text-zinc-400">{o.rationale}</p>
+                  <p className="mt-2 text-xs text-secondary">{o.rationale}</p>
                 )}
                 <div className="mt-3 flex items-center gap-4 text-xs">
                   {o.decidedBy && (
-                    <span className="text-zinc-500">
-                      By: <span className="text-zinc-300">{o.decidedBy}</span>
+                    <span className="text-muted">
+                      By: <span className="text-secondary">{o.decidedBy}</span>
                     </span>
                   )}
                   {o.nextSteps && (
-                    <span className="text-zinc-500">
-                      Next: <span className="text-zinc-300">{o.nextSteps}</span>
+                    <span className="text-muted">
+                      Next: <span className="text-secondary">{o.nextSteps}</span>
                     </span>
                   )}
                 </div>
@@ -955,7 +955,7 @@ export default function StudyDetailPage() {
       {/* Confirm dialog */}
       {confirmAction && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setConfirmAction(null);
@@ -964,7 +964,7 @@ export default function StudyDetailPage() {
           }}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             tabIndex={-1}
             ref={(el) => el?.focus()}
             onKeyDown={(e) => {
@@ -979,15 +979,15 @@ export default function StudyDetailPage() {
               }
             }}
           >
-            <h2 className="text-sm font-semibold text-white">Confirm</h2>
-            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <h2 className="text-sm font-semibold text-foreground">Confirm</h2>
+            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => {
                   setConfirmAction(null);
                   setConfirmMessage("");
                 }}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
               >
                 Cancel
               </button>

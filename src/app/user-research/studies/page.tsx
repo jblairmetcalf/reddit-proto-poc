@@ -39,7 +39,7 @@ interface Prototype {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-300",
+  draft: "bg-subtle text-secondary",
   active: "bg-green-500/20 text-green-400",
   completed: "bg-blue-500/20 text-blue-400",
 };
@@ -187,8 +187,8 @@ export default function StudiesPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Studies</h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-foreground">Studies</h1>
+          <p className="mt-1 text-sm text-secondary">
             Create and manage UX research studies
           </p>
         </div>
@@ -203,13 +203,13 @@ export default function StudiesPage() {
       {/* Create / Edit dialog */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
               if (e.key === "Escape") closeForm();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
@@ -219,19 +219,19 @@ export default function StudiesPage() {
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">
+              <h2 className="text-sm font-semibold text-foreground">
                 {editingId ? "Edit Study" : "Create Study"}
               </h2>
               <button
                 onClick={closeForm}
-                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Study Name
                 </label>
                 <input
@@ -240,11 +240,11 @@ export default function StudiesPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Feed Sorting Experiment"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Description
                 </label>
                 <textarea
@@ -252,18 +252,18 @@ export default function StudiesPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What are you testing?"
                   rows={3}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
                 />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     Prototype
                   </label>
                   <select
                     value={selectedProtoKey}
                     onChange={(e) => setSelectedProtoKey(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                   >
                     <option value="">Select a prototype...</option>
                     {prototypers.map((p) => {
@@ -286,14 +286,14 @@ export default function StudiesPage() {
                     })}
                   </select>
                   {prototypes.length === 0 && (
-                    <p className="mt-1 text-xs text-zinc-600">
+                    <p className="mt-1 text-xs text-faint">
                       Add prototypes from the Prototypers page first.
                     </p>
                   )}
                 </div>
                 {editingId && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1 block text-xs font-medium text-secondary">
                       Status
                     </label>
                     <select
@@ -301,7 +301,7 @@ export default function StudiesPage() {
                       onChange={(e) =>
                         setStatus(e.target.value as "draft" | "active" | "completed")
                       }
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                     >
                       <option value="draft">Draft</option>
                       <option value="active">Active</option>
@@ -313,7 +313,7 @@ export default function StudiesPage() {
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   onClick={closeForm}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -336,63 +336,42 @@ export default function StudiesPage() {
 
       {/* Studies list */}
       {studies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 p-12 text-center">
-          <p className="text-sm text-zinc-500">
+        <div className="rounded-xl border border-dashed border-edge p-12 text-center">
+          <p className="text-sm text-muted">
             No studies yet. Create one to get started.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {studies.map((study) => (
-            <div
+            <Link
               key={study.id}
-              className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700"
+              href={`/user-research/studies/${study.id}`}
+              className="group rounded-xl border border-edge bg-card p-6 transition-colors hover:border-orange-600"
             >
-              <Link
-                href={`/user-research/studies/${study.id}`}
-                className="min-w-0 flex-1"
-              >
-                <div className="flex items-center gap-3">
-                  <h3 className="text-sm font-semibold text-white">
-                    {study.name}
-                  </h3>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status] || STATUS_STYLES.draft}`}
-                  >
-                    {study.status}
-                  </span>
-                </div>
-                {study.description && (
-                  <p className="mt-1 text-xs text-zinc-500 truncate">
-                    {study.description}
-                  </p>
-                )}
-                <p className="mt-1 text-[10px] text-zinc-600">
-                  {study.prototypeTitle
-                    ? `Prototype: ${study.prototypeTitle}`
-                    : "No prototype selected"}
-                  {study.createdAt &&
-                    ` · Created ${new Date(study.createdAt.seconds * 1000).toLocaleDateString()}`}
-                </p>
-              </Link>
-              <div className="ml-4 flex items-center gap-1">
-                <button
-                  onClick={() => openEdit(study)}
-                  className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
+                  {study.name}
+                </h3>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status] || STATUS_STYLES.draft}`}
                 >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    setConfirmAction(() => () => handleDelete(study.id));
-                    setConfirmMessage(`Delete "${study.name}"?`);
-                  }}
-                  className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                >
-                  Delete
-                </button>
+                  {study.status}
+                </span>
               </div>
-            </div>
+              {study.description && (
+                <p className="mt-2 text-sm text-secondary">
+                  {study.description}
+                </p>
+              )}
+              <p className="mt-2 text-xs text-muted">
+                {study.prototypeTitle
+                  ? `Prototype: ${study.prototypeTitle}`
+                  : "No prototype selected"}
+                {study.createdAt &&
+                  ` · Created ${new Date(study.createdAt.seconds * 1000).toLocaleDateString()}`}
+              </p>
+            </Link>
           ))}
         </div>
       )}
@@ -400,7 +379,7 @@ export default function StudiesPage() {
       {/* Confirm dialog */}
       {confirmAction && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setConfirmAction(null);
@@ -409,7 +388,7 @@ export default function StudiesPage() {
           }}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             tabIndex={-1}
             ref={(el) => el?.focus()}
             onKeyDown={(e) => {
@@ -424,15 +403,15 @@ export default function StudiesPage() {
               }
             }}
           >
-            <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
+            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => {
                   setConfirmAction(null);
                   setConfirmMessage("");
                 }}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
               >
                 Cancel
               </button>

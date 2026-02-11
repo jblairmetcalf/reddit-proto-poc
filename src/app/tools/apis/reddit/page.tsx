@@ -93,29 +93,29 @@ export default function RedditApiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Link href="/tools/apis" className="text-sm text-zinc-500 hover:text-white transition-colors">&larr;</Link>
-          <h1 className="text-2xl font-bold text-white">Reddit API</h1>
+          <Link href="/tools/apis" className="text-sm text-muted hover:text-foreground transition-colors">&larr;</Link>
+          <h1 className="text-2xl font-bold text-foreground">Reddit API</h1>
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-emerald-400">GET</span>
         </div>
-        <code className="text-xs text-zinc-500">/api/reddit</code>
-        <p className="mt-2 text-sm text-zinc-400">
+        <code className="text-xs text-muted">/api/reddit</code>
+        <p className="mt-2 text-sm text-secondary">
           Server-side proxy for Reddit data. Authenticates via OAuth client credentials.
         </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Request panel */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">Request</h2>
+        <div className="rounded-xl border border-edge bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Request</h2>
 
-          <label className="mb-1 block text-xs font-medium text-zinc-400">Action</label>
+          <label className="mb-1 block text-xs font-medium text-secondary">Action</label>
           <select
             value={action}
             onChange={(e) => { setAction(e.target.value); setParams({}); }}
-            className="mb-4 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
+            className="mb-4 w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground outline-none focus:border-orange-500"
           >
             {ACTIONS.map((a) => (
               <option key={a.value} value={a.value}>{a.label}</option>
@@ -124,7 +124,7 @@ export default function RedditApiPage() {
 
           {activeAction.params.map((p) => (
             <div key={p.name} className="mb-3">
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-secondary">
                 {p.label}
                 {p.required && <span className="text-orange-400">*</span>}
               </label>
@@ -132,7 +132,7 @@ export default function RedditApiPage() {
                 <select
                   value={params[p.name] || p.default}
                   onChange={(e) => updateParam(p.name, e.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground outline-none focus:border-orange-500"
                 >
                   {p.options.map((o) => (
                     <option key={o} value={o}>{o}</option>
@@ -144,7 +144,7 @@ export default function RedditApiPage() {
                   value={params[p.name] ?? p.default}
                   onChange={(e) => updateParam(p.name, e.target.value)}
                   placeholder={p.default || p.label}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-orange-500"
                 />
               )}
             </div>
@@ -160,21 +160,64 @@ export default function RedditApiPage() {
         </div>
 
         {/* Response panel */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <div className="rounded-xl border border-edge bg-card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Response</h2>
+            <h2 className="text-sm font-semibold text-foreground">Response</h2>
             {status !== null && (
               <div className="flex items-center gap-3 text-xs">
                 <span className={status < 400 ? "text-emerald-400" : "text-red-400"}>
                   {status}
                 </span>
-                {duration !== null && <span className="text-zinc-500">{duration}ms</span>}
+                {duration !== null && <span className="text-muted">{duration}ms</span>}
               </div>
             )}
           </div>
-          <pre className="max-h-[600px] overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-300">
+          <pre className="max-h-[600px] overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">
             {response ?? "Response will appear here..."}
           </pre>
+        </div>
+      </div>
+
+      {/* Code Examples */}
+      <div className="mt-6 rounded-xl border border-edge bg-card p-5">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Code Examples</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Fetch popular posts</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const res = await fetch("/api/reddit?action=popular&sort=hot&limit=10");
+const data = await res.json();
+// data.posts: RedditPost[]`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Fetch subreddit posts</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const res = await fetch("/api/reddit?action=subreddit&subreddit=reactjs&sort=new&limit=25");
+const data = await res.json();
+// data.posts: RedditPost[], data.after: string | null`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Fetch post comments</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const res = await fetch("/api/reddit?action=comments&subreddit=reactjs&postId=1abc2de&sort=best");
+const data = await res.json();
+// data.post: RedditPost, data.comments: RedditComment[]`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Search subreddits</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const res = await fetch("/api/reddit?action=search_subreddits&q=javascript&limit=10");
+const data = await res.json();
+// data.subreddits: { name, title, subscribers, icon_img }[]`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Paginate with cursor</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`// First page
+const page1 = await fetch("/api/reddit?action=popular&limit=10").then(r => r.json());
+
+// Next page using the "after" cursor
+if (page1.after) {
+  const page2 = await fetch(
+    \`/api/reddit?action=popular&limit=10&after=\${page1.after}\`
+  ).then(r => r.json());
+}`}</pre>
+          </div>
         </div>
       </div>
     </div>

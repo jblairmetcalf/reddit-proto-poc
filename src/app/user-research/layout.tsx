@@ -16,17 +16,17 @@ export default function UxrLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen bg-zinc-950">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="sticky top-0 h-screen w-56 flex-shrink-0 overflow-y-auto border-r border-zinc-800 bg-zinc-900">
-        <div className="flex items-center gap-3 border-b border-zinc-800 px-5 py-4">
+      <aside className="sticky top-0 h-screen w-56 flex-shrink-0 overflow-y-auto border-r border-edge bg-card">
+        <div className="flex items-center gap-3 border-b border-edge px-5 py-4">
           <Link
             href="/"
-            className="text-sm text-zinc-500 hover:text-white transition-colors"
+            className="text-sm text-muted hover:text-foreground transition-colors"
           >
             &larr;
           </Link>
-          <h1 className="text-base font-bold text-white">User Research</h1>
+          <h1 className="text-base font-bold text-foreground">User Research</h1>
         </div>
 
         <nav className="flex flex-col gap-1 p-3">
@@ -43,7 +43,7 @@ export default function UxrLayout({ children }: { children: ReactNode }) {
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-orange-600/10 text-orange-400"
-                    : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                    : "text-secondary hover:bg-input hover:text-foreground"
                 }`}
               >
                 <span className="text-base">{item.icon}</span>

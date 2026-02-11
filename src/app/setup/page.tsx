@@ -118,10 +118,10 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Study Setup</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-foreground">Study Setup</h1>
+        <p className="mt-1 text-sm text-secondary">
           Creates 2 studies (variant-a, variant-b) with 3 synthetic participants each.
         </p>
       </header>
@@ -137,7 +137,7 @@ export default function SetupPage() {
       )}
 
       {logs.length > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <div className="rounded-xl border border-edge bg-card p-5">
           <pre className="space-y-0.5 text-xs">
             {logs.map((entry, i) => (
               <div
@@ -147,7 +147,7 @@ export default function SetupPage() {
                     ? "text-emerald-400"
                     : entry.type === "error"
                       ? "text-red-400"
-                      : "text-zinc-400"
+                      : "text-secondary"
                 }
               >
                 {entry.message}
@@ -161,13 +161,13 @@ export default function SetupPage() {
         <div className="mt-4 flex gap-3">
           <a
             href="/user-research/studies"
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-orange-500 hover:text-orange-400"
+            className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary hover:border-orange-500 hover:text-orange-400"
           >
             View Studies
           </a>
           <a
             href="/user-research/participants"
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-orange-500 hover:text-orange-400"
+            className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary hover:border-orange-500 hover:text-orange-400"
           >
             View Participants
           </a>

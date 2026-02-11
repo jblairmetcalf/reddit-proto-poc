@@ -25,16 +25,16 @@ const tools = [
 
 export default function ToolsPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-6">
         <Link
           href="/"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-orange-400"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-orange-400"
         >
           &larr; Dashboard
         </Link>
-        <h1 className="text-2xl font-bold text-white">Tools</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-foreground">Tools</h1>
+        <p className="mt-1 text-sm text-secondary">
           Feed builder, playground, data queries, and API explorer
         </p>
       </header>
@@ -43,12 +43,12 @@ export default function ToolsPage() {
           <Link
             key={tool.href}
             href={tool.href}
-            className="group rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-orange-600"
+            className="group rounded-xl border border-edge bg-card p-6 transition-colors hover:border-orange-600"
           >
-            <h2 className="text-lg font-semibold text-white group-hover:text-orange-400">
+            <h2 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
               {tool.title}
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">{tool.description}</p>
+            <p className="mt-2 text-sm text-secondary">{tool.description}</p>
           </Link>
         ))}
       </div>

@@ -30,14 +30,14 @@ interface Prototype {
 }
 
 const VARIANT_BADGE_COLORS: Record<string, string> = {
-  default: "bg-zinc-700 text-zinc-300",
+  default: "bg-subtle text-secondary",
   "variant-a": "bg-blue-500/20 text-blue-400",
   "variant-b": "bg-green-500/20 text-green-400",
   "variant-c": "bg-purple-500/20 text-purple-400",
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-300",
+  draft: "bg-subtle text-secondary",
   "in-progress": "bg-amber-500/20 text-amber-400",
   complete: "bg-green-500/20 text-green-400",
 };
@@ -150,18 +150,18 @@ export default function PrototypesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Link
             href="/"
-            className="text-sm text-zinc-500 hover:text-white transition-colors"
+            className="text-sm text-muted hover:text-foreground transition-colors"
           >
             &larr;
           </Link>
-          <h1 className="text-2xl font-bold text-white">Prototypes</h1>
+          <h1 className="text-2xl font-bold text-foreground">Prototypes</h1>
         </div>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-secondary">
           Search all prototypes and review variant configurations.
         </p>
       </header>
@@ -173,10 +173,10 @@ export default function PrototypesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, author, role, status, variant, file..."
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+          className="w-full rounded-lg border border-edge-strong bg-card px-4 py-3 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
         />
         {query && (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted">
             {filtered.length} result{filtered.length !== 1 ? "s" : ""} for
             &ldquo;{search.trim()}&rdquo;
           </p>
@@ -185,71 +185,67 @@ export default function PrototypesPage() {
 
       {/* Prototypes list */}
       <section className="mb-10">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted">
           {query ? "Search Results" : "All Prototypes"}
-          <span className="ml-2 text-zinc-600">({filtered.length})</span>
+          <span className="ml-2 text-faint">({filtered.length})</span>
         </h2>
         {filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-            <p className="text-sm text-zinc-500">
+          <div className="rounded-xl border border-dashed border-edge p-8 text-center">
+            <p className="text-sm text-muted">
               {query
                 ? "No prototypes match your search."
                 : "No prototypes yet. Add prototypes from the Prototypers page."}
             </p>
           </div>
         ) : (
-            <div className="space-y-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((proto) => (
                 <div
                   key={`${proto.prototyperId}-${proto.id}`}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700"
+                  className="rounded-xl border border-edge bg-card p-6 transition-colors hover:border-edge-strong"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-sm font-semibold text-white">
-                          {proto.title}
-                        </h3>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
-                        >
-                          {proto.status}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VARIANT_BADGE_COLORS[proto.variant] || VARIANT_BADGE_COLORS.default}`}
-                        >
-                          {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
-                        </span>
-                      </div>
-                      {proto.description && (
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {proto.description}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-600">
-                        <Link
-                          href={`/prototypers/${proto.prototyperId}`}
-                          className="text-zinc-400 hover:text-orange-400 transition-colors"
-                        >
-                          {proto.prototyperName}
-                        </Link>
-                        {proto.prototyperRole && (
-                          <span
-                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${ROLE_STYLES[proto.prototyperRole] || "bg-zinc-700 text-zinc-300"}`}
-                          >
-                            {proto.prototyperRole}
-                          </span>
-                        )}
-                        {proto.modifiedAt && (
-                          <span>
-                            Modified{" "}
-                            {new Date(
-                              proto.modifiedAt.seconds * 1000
-                            ).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {proto.title}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
+                    >
+                      {proto.status}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VARIANT_BADGE_COLORS[proto.variant] || VARIANT_BADGE_COLORS.default}`}
+                    >
+                      {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
+                    </span>
+                  </div>
+                  {proto.description && (
+                    <p className="mt-2 text-sm text-secondary">
+                      {proto.description}
+                    </p>
+                  )}
+                  <div className="mt-2 flex items-center gap-3 text-xs text-muted">
+                    <Link
+                      href={`/prototypers/${proto.prototyperId}`}
+                      className="hover:text-orange-400 transition-colors"
+                    >
+                      {proto.prototyperName}
+                    </Link>
+                    {proto.prototyperRole && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${ROLE_STYLES[proto.prototyperRole] || "bg-subtle text-secondary"}`}
+                      >
+                        {proto.prototyperRole}
+                      </span>
+                    )}
+                    {proto.modifiedAt && (
+                      <span className="text-[10px]">
+                        Modified{" "}
+                        {new Date(
+                          proto.modifiedAt.seconds * 1000
+                        ).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     {proto.url ? (
@@ -257,23 +253,23 @@ export default function PrototypesPage() {
                         href={proto.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                       >
-                        Preview &rarr;
+                        Preview
                       </a>
                     ) : proto.fileName ? (
                       <Link
                         href={`/prototype/uploaded/${proto.prototyperId}/${proto.id}`}
                         target="_blank"
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                       >
-                        Preview &rarr;
+                        Preview
                       </Link>
                     ) : (
                       <Link
                         href={`/prototype?variant=${proto.variant}`}
                         target="_blank"
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                       >
                         Preview
                       </Link>
@@ -281,7 +277,7 @@ export default function PrototypesPage() {
                     <button
                       onClick={() => handleCreateStudy(proto)}
                       disabled={creatingStudy === proto.id}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {creatingStudy === proto.id ? "Creating..." : "Create Study"}
                     </button>

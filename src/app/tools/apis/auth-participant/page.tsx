@@ -55,33 +55,33 @@ export default function AuthParticipantApiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Link href="/tools/apis" className="text-sm text-zinc-500 hover:text-white transition-colors">&larr;</Link>
-          <h1 className="text-2xl font-bold text-white">Participant Auth</h1>
+          <Link href="/tools/apis" className="text-sm text-muted hover:text-foreground transition-colors">&larr;</Link>
+          <h1 className="text-2xl font-bold text-foreground">Participant Auth</h1>
           <span className="rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-blue-400">POST</span>
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-emerald-400">GET</span>
         </div>
-        <code className="text-xs text-zinc-500">/api/auth/participant</code>
-        <p className="mt-2 text-sm text-zinc-400">
+        <code className="text-xs text-muted">/api/auth/participant</code>
+        <p className="mt-2 text-sm text-secondary">
           Create JWT tokens for participant prototype access, or verify existing tokens.
         </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Request panel */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">Request</h2>
+        <div className="rounded-xl border border-edge bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Request</h2>
 
-          <label className="mb-1 block text-xs font-medium text-zinc-400">Mode</label>
+          <label className="mb-1 block text-xs font-medium text-secondary">Mode</label>
           <div className="mb-4 flex gap-2">
             <button
               onClick={() => setMode("create")}
               className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
                 mode === "create"
                   ? "border-orange-500 bg-orange-600/10 text-orange-400"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                  : "border-edge-strong text-secondary hover:border-edge-strong"
               }`}
             >
               POST &mdash; Create Token
@@ -91,7 +91,7 @@ export default function AuthParticipantApiPage() {
               className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
                 mode === "verify"
                   ? "border-orange-500 bg-orange-600/10 text-orange-400"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                  : "border-edge-strong text-secondary hover:border-edge-strong"
               }`}
             >
               GET &mdash; Verify Token
@@ -101,46 +101,46 @@ export default function AuthParticipantApiPage() {
           {mode === "create" ? (
             <>
               <div className="mb-3">
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-secondary">
                   Participant ID <span className="text-orange-400">*</span>
                 </label>
                 <input
                   value={participantId}
                   onChange={(e) => setParticipantId(e.target.value)}
                   placeholder="participant-001"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-orange-500"
                 />
               </div>
               <div className="mb-3">
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-secondary">
                   Study ID <span className="text-orange-400">*</span>
                 </label>
                 <input
                   value={studyId}
                   onChange={(e) => setStudyId(e.target.value)}
                   placeholder="study-abc123"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-orange-500"
                 />
               </div>
               <div className="mb-3">
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-secondary">
                   Name <span className="text-orange-400">*</span>
                 </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-orange-500"
                 />
               </div>
               <div className="mb-3">
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Prototype Variant
                 </label>
                 <select
                   value={prototypeVariant}
                   onChange={(e) => setPrototypeVariant(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground outline-none focus:border-orange-500"
                 >
                   <option value="">None</option>
                   <option value="default">Default</option>
@@ -152,7 +152,7 @@ export default function AuthParticipantApiPage() {
             </>
           ) : (
             <div className="mb-3">
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-secondary">
                 Token <span className="text-orange-400">*</span>
               </label>
               <textarea
@@ -160,7 +160,7 @@ export default function AuthParticipantApiPage() {
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="eyJhbGciOiJIUzI1NiIs..."
                 rows={4}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-orange-500 font-mono"
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-orange-500 font-mono"
               />
             </div>
           )}
@@ -175,21 +175,79 @@ export default function AuthParticipantApiPage() {
         </div>
 
         {/* Response panel */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <div className="rounded-xl border border-edge bg-card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Response</h2>
+            <h2 className="text-sm font-semibold text-foreground">Response</h2>
             {status !== null && (
               <div className="flex items-center gap-3 text-xs">
                 <span className={status < 400 ? "text-emerald-400" : "text-red-400"}>
                   {status}
                 </span>
-                {duration !== null && <span className="text-zinc-500">{duration}ms</span>}
+                {duration !== null && <span className="text-muted">{duration}ms</span>}
               </div>
             )}
           </div>
-          <pre className="max-h-[600px] overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-300">
+          <pre className="max-h-[600px] overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">
             {response ?? "Response will appear here..."}
           </pre>
+        </div>
+      </div>
+
+      {/* Code Examples */}
+      <div className="mt-6 rounded-xl border border-edge bg-card p-5">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Code Examples</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Create a participant token</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const res = await fetch("/api/auth/participant", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    participantId: "participant-001",
+    studyId: "study-abc123",
+    name: "Jane Doe",
+    prototypeVariant: "variant-a",  // optional
+  }),
+});
+const data = await res.json();
+// data.token: string (JWT)
+// data.url: string (prototype URL with token)`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Verify a token</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`const token = "eyJhbGciOiJIUzI1NiIs...";
+const res = await fetch(\`/api/auth/participant?token=\${encodeURIComponent(token)}\`);
+const data = await res.json();
+
+if (data.valid) {
+  // data.participantId: string
+  // data.studyId: string
+  // data.name: string
+  // data.prototypeVariant?: string
+}`}</pre>
+          </div>
+          <div>
+            <h3 className="mb-1.5 text-xs font-medium text-secondary">Full invite flow</h3>
+            <pre className="overflow-auto rounded-lg bg-background p-4 text-xs text-secondary">{`// 1. Create token for participant
+const { token, url } = await fetch("/api/auth/participant", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    participantId: "p-042",
+    studyId: "study-xyz",
+    name: "Alex Smith",
+  }),
+}).then(r => r.json());
+
+// 2. Send the URL to the participant (e.g. via email)
+console.log("Invite link:", url);
+// → /prototype?token=eyJhbGci...
+
+// 3. On prototype load, verify the token server-side
+const { valid, participantId, studyId } = await fetch(
+  \`/api/auth/participant?token=\${token}\`
+).then(r => r.json());`}</pre>
+          </div>
         </div>
       </div>
     </div>

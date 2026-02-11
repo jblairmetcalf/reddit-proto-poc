@@ -41,8 +41,8 @@ export default function UxrOverview() {
   return (
     <div className="p-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-white">User Research</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-foreground">User Research</h1>
+        <p className="mt-1 text-sm text-secondary">
           User experience research tools for the Reddit Proto platform
         </p>
       </header>
@@ -52,7 +52,7 @@ export default function UxrOverview() {
           <Link
             key={card.href}
             href={card.href}
-            className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-orange-600"
+            className="group rounded-xl border border-edge bg-card p-5 transition-colors hover:border-orange-600"
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-2xl">{card.icon}</span>
@@ -60,10 +60,10 @@ export default function UxrOverview() {
                 {card.stat}
               </span>
             </div>
-            <h2 className="text-base font-semibold text-white group-hover:text-orange-400">
+            <h2 className="text-base font-semibold text-foreground group-hover:text-orange-400">
               {card.title}
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">
               {card.description}
             </p>
           </Link>

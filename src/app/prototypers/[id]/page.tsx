@@ -13,7 +13,7 @@ import {
   doc,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { VARIANT_PRESETS } from "@/lib/variants";
 
 interface Prototyper {
@@ -36,7 +36,7 @@ interface Prototype {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-300",
+  draft: "bg-subtle text-secondary",
   "in-progress": "bg-amber-500/20 text-amber-400",
   complete: "bg-green-500/20 text-green-400",
 };
@@ -58,7 +58,7 @@ export default function PrototyperDetailPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"draft" | "in-progress" | "complete">("draft");
-  const [protoType, setProtoType] = useState<"default" | "link" | "file">("default");
+  const [protoType, setProtoType] = useState<"default" | "link" | "file">("file");
   const [variant, setVariant] = useState("default");
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -102,7 +102,7 @@ export default function PrototyperDetailPage() {
     setTitle("");
     setDescription("");
     setStatus("draft");
-    setProtoType("default");
+    setProtoType("file");
     setVariant("default");
     setUrl("");
     setFileName("");
@@ -200,6 +200,10 @@ export default function PrototyperDetailPage() {
 
   const handleDelete = async (protoId: string) => {
     try {
+      const proto = prototypes.find((p) => p.id === protoId);
+      if (proto?.fileUrl) {
+        await deleteObject(ref(storage, proto.fileUrl)).catch(() => {});
+      }
       await deleteDoc(doc(db, "prototypers", id, "prototypes", protoId));
     } catch (err) {
       console.error("Failed to delete prototype:", err);
@@ -214,37 +218,37 @@ export default function PrototyperDetailPage() {
 
   if (!prototyper) {
     return (
-      <div className="min-h-screen bg-zinc-950 p-8">
-        <p className="text-sm text-zinc-500">Loading...</p>
+      <div className="min-h-screen bg-background p-8">
+        <p className="text-sm text-muted">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <header className="mb-6">
         <Link
           href="/prototypers"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-orange-400"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-orange-400"
         >
           &larr; Prototypers
         </Link>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 {prototyper.name}
               </h1>
               {prototyper.role && (
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[prototyper.role] || "bg-zinc-700 text-zinc-300"}`}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[prototyper.role] || "bg-subtle text-secondary"}`}
                 >
                   {prototyper.role}
                 </span>
               )}
             </div>
             {prototyper.email && (
-              <p className="mt-1 text-sm text-zinc-400">{prototyper.email}</p>
+              <p className="mt-1 text-sm text-secondary">{prototyper.email}</p>
             )}
           </div>
           <button
@@ -257,19 +261,19 @@ export default function PrototyperDetailPage() {
 
         {/* Stats row */}
         <div className="mt-4 flex gap-6">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="rounded-lg border border-edge bg-card px-4 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
               Prototypes
             </p>
-            <p className="mt-1 text-lg font-bold text-white">
+            <p className="mt-1 text-lg font-bold text-foreground">
               {prototypes.length}
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="rounded-lg border border-edge bg-card px-4 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
               Latest Modified
             </p>
-            <p className="mt-1 text-lg font-bold text-white">
+            <p className="mt-1 text-lg font-bold text-foreground">
               {latestModified
                 ? new Date(latestModified).toLocaleDateString()
                 : "\u2014"}
@@ -281,13 +285,13 @@ export default function PrototyperDetailPage() {
       {/* Create / Edit dialog */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-lg rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
               if (e.key === "Escape") closeForm();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
@@ -297,19 +301,19 @@ export default function PrototyperDetailPage() {
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">
+              <h2 className="text-sm font-semibold text-foreground">
                 {editingId ? "Edit Prototype" : "Add Prototype"}
               </h2>
               <button
                 onClick={closeForm}
-                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-white"
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Title
                 </label>
                 <input
@@ -318,11 +322,11 @@ export default function PrototyperDetailPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Compact Feed Exploration"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Description
                 </label>
                 <textarea
@@ -330,11 +334,11 @@ export default function PrototyperDetailPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What does this prototype explore?"
                   rows={3}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">
+                <label className="mb-1 block text-xs font-medium text-secondary">
                   Status
                 </label>
                 <select
@@ -342,7 +346,7 @@ export default function PrototyperDetailPage() {
                   onChange={(e) =>
                     setStatus(e.target.value as "draft" | "in-progress" | "complete")
                   }
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                 >
                   <option value="draft">Draft</option>
                   <option value="in-progress">In Progress</option>
@@ -350,14 +354,14 @@ export default function PrototyperDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-2 block text-xs font-medium text-secondary">
                   Type
                 </label>
                 <div className="flex gap-2">
                   {([
+                    { value: "file", label: "Uploaded File" },
                     { value: "default", label: "Coded Prototype" },
                     { value: "link", label: "Link" },
-                    { value: "file", label: "Uploaded File" },
                   ] as const).map((opt) => (
                     <button
                       key={opt.value}
@@ -366,7 +370,7 @@ export default function PrototyperDetailPage() {
                       className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
                         protoType === opt.value
                           ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                          : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+                          : "border-edge-strong bg-input text-secondary hover:border-edge-strong hover:text-secondary"
                       }`}
                     >
                       {opt.label}
@@ -376,13 +380,13 @@ export default function PrototyperDetailPage() {
               </div>
               {protoType === "default" && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     Variant
                   </label>
                   <select
                     value={variant}
                     onChange={(e) => setVariant(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                   >
                     {Object.values(VARIANT_PRESETS).map((v) => (
                       <option key={v.id} value={v.id}>
@@ -394,7 +398,7 @@ export default function PrototyperDetailPage() {
               )}
               {protoType === "link" && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     URL
                   </label>
                   <input
@@ -402,38 +406,42 @@ export default function PrototyperDetailPage() {
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://..."
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               )}
               {protoType === "file" && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-secondary">
                     File
                   </label>
                   <input
                     type="file"
+                    accept=".html,.htm,.jsx,.tsx,.zip,.png,.jpg,.jpeg,.gif,.svg,.webp,.pdf"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       setFileName(file ? file.name : "");
                       setFileRef(file ?? null);
                     }}
-                    className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-600"
+                    className="w-full text-sm text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-subtle file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-secondary file:cursor-pointer hover:file:bg-subtle"
                   />
+                  <p className="mt-1 text-[10px] text-faint">
+                    Accepts HTML, JSX/TSX, ZIP, images, and PDF
+                  </p>
                   {editingId && fileName && !fileRef && (
-                    <p className="mt-1 text-[10px] text-zinc-600">
+                    <p className="mt-1 text-[10px] text-faint">
                       Current: {fileName}
                     </p>
                   )}
                   {uploadProgress !== null && (
                     <div className="mt-2">
-                      <div className="h-1.5 w-full rounded-full bg-zinc-700">
+                      <div className="h-1.5 w-full rounded-full bg-subtle">
                         <div
                           className="h-1.5 rounded-full bg-orange-500 transition-all"
                           style={{ width: `${uploadProgress}%` }}
                         />
                       </div>
-                      <p className="mt-1 text-[10px] text-zinc-500">
+                      <p className="mt-1 text-[10px] text-muted">
                         Uploading... {uploadProgress}%
                       </p>
                     </div>
@@ -443,7 +451,7 @@ export default function PrototyperDetailPage() {
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   onClick={closeForm}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -466,26 +474,78 @@ export default function PrototyperDetailPage() {
 
       {/* Prototypes list */}
       {prototypes.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 p-12 text-center">
-          <p className="text-sm text-zinc-500">
-            No prototypes yet. Add one to get started.
+        <div className="mx-auto max-w-2xl py-8">
+          <h2 className="text-xl font-bold text-foreground">
+            Welcome, {prototyper.name}!
+          </h2>
+          <p className="mt-2 text-sm text-secondary">
+            Create your first prototype. Choose from three types — a self-contained
+            HTML file, a React JSX component, or a ZIP bundle with multiple files.
           </p>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-edge bg-card p-5">
+              <p className="text-lg">📄</p>
+              <h3 className="mt-2 text-sm font-semibold text-foreground">HTML</h3>
+              <p className="mt-1 text-xs text-secondary">
+                A single self-contained HTML file with inline CSS and JS.
+              </p>
+              <a
+                href="/boilerplates/starter.html"
+                download
+                className="mt-3 inline-block text-xs font-medium text-orange-400 transition-colors hover:text-orange-300"
+              >
+                Download Starter &darr;
+              </a>
+            </div>
+
+            <div className="rounded-xl border border-edge bg-card p-5">
+              <p className="text-lg">⚛️</p>
+              <h3 className="mt-2 text-sm font-semibold text-foreground">JSX / TSX</h3>
+              <p className="mt-1 text-xs text-secondary">
+                A React component file — auto-transpiled and rendered with React 19.
+              </p>
+              <a
+                href="/boilerplates/starter.jsx"
+                download
+                className="mt-3 inline-block text-xs font-medium text-orange-400 transition-colors hover:text-orange-300"
+              >
+                Download Starter &darr;
+              </a>
+            </div>
+
+            <div className="rounded-xl border border-edge bg-card p-5">
+              <p className="text-lg">📦</p>
+              <h3 className="mt-2 text-sm font-semibold text-foreground">ZIP Archive</h3>
+              <p className="mt-1 text-xs text-secondary">
+                Bundle HTML, CSS, and JS files together with working relative
+                references.
+              </p>
+              <a
+                href="/boilerplates/starter.zip"
+                download
+                className="mt-3 inline-block text-xs font-medium text-orange-400 transition-colors hover:text-orange-300"
+              >
+                Download Starter &darr;
+              </a>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {prototypes.map((proto) => (
             <div
               key={proto.id}
-              className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700"
+              className="rounded-xl border border-edge bg-card p-6 transition-colors hover:border-edge-strong"
             >
               <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   {proto.title}
                 </h3>
                 <div className="ml-2 flex items-center gap-1">
                   <button
                     onClick={() => openEdit(proto)}
-                    className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                    className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
                   >
                     Edit
                   </button>
@@ -494,14 +554,14 @@ export default function PrototyperDetailPage() {
                       setConfirmAction(() => () => handleDelete(proto.id));
                       setConfirmMessage(`Delete "${proto.title}"?`);
                     }}
-                    className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     Delete
                   </button>
                 </div>
               </div>
               {proto.description && (
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-2 text-sm text-secondary">
                   {proto.description}
                 </p>
               )}
@@ -511,12 +571,12 @@ export default function PrototyperDetailPage() {
                 >
                   {proto.status}
                 </span>
-                <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                <span className="rounded-full bg-input px-2 py-0.5 text-[10px] font-medium text-secondary">
                   {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
                 </span>
               </div>
               {proto.modifiedAt && (
-                <p className="mt-3 text-[10px] text-zinc-600">
+                <p className="mt-3 text-xs text-muted">
                   Modified{" "}
                   {new Date(
                     proto.modifiedAt.seconds * 1000
@@ -528,26 +588,26 @@ export default function PrototyperDetailPage() {
                   href={proto.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                  className="mt-3 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                 >
-                  Preview &rarr;
+                  Preview
                 </a>
               ) : proto.fileName ? (
                 <div className="mt-3 flex items-center gap-2">
                   <Link
                     href={`/prototype/uploaded/${id}/${proto.id}`}
                     target="_blank"
-                    className="inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                    className="inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                   >
-                    Preview &rarr;
+                    Preview
                   </Link>
-                  <span className="text-[10px] text-zinc-600">{proto.fileName}</span>
+                  <span className="text-xs text-muted">{proto.fileName}</span>
                 </div>
               ) : (
                 <Link
                   href={`/prototype?variant=${proto.variant}`}
                   target="_blank"
-                  className="mt-3 inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                  className="mt-3 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                 >
                   Preview
                 </Link>
@@ -560,7 +620,7 @@ export default function PrototyperDetailPage() {
       {/* Confirm dialog */}
       {confirmAction && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setConfirmAction(null);
@@ -569,7 +629,7 @@ export default function PrototyperDetailPage() {
           }}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             tabIndex={-1}
             ref={(el) => el?.focus()}
             onKeyDown={(e) => {
@@ -584,15 +644,15 @@ export default function PrototyperDetailPage() {
               }
             }}
           >
-            <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
+            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
+            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => {
                   setConfirmAction(null);
                   setConfirmMessage("");
                 }}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
               >
                 Cancel
               </button>

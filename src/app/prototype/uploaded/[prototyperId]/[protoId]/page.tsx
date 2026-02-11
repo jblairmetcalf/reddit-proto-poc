@@ -74,9 +74,36 @@ export default function UploadedPreviewPage() {
   const imageExts = ["png", "jpg", "jpeg", "gif", "svg", "webp"];
   const isImage = imageExts.includes(ext);
   const isHtml = ext === "html" || ext === "htm";
+  const isJsx = ext === "jsx" || ext === "tsx";
+  const isZip = ext === "zip";
   const isPdf = ext === "pdf";
 
-  if (isHtml || isPdf) {
+  // HTML, JSX/TSX → serve via API proxy
+  if (isHtml || isJsx) {
+    return (
+      <iframe
+        src={`/api/prototype/serve/${prototyperId}/${protoId}/${proto.fileName}`}
+        title={proto.title}
+        sandbox="allow-scripts"
+        className="h-screen w-screen border-0"
+      />
+    );
+  }
+
+  // ZIP → serve index.html from extracted archive via API proxy
+  if (isZip) {
+    return (
+      <iframe
+        src={`/api/prototype/serve/${prototyperId}/${protoId}/index.html`}
+        title={proto.title}
+        sandbox="allow-scripts"
+        className="h-screen w-screen border-0"
+      />
+    );
+  }
+
+  // PDF → direct URL works fine
+  if (isPdf) {
     return (
       <iframe
         src={proto.fileUrl}
