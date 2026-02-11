@@ -22,6 +22,7 @@ export const Default: Story = {
 };
 
 export const StudyStatuses: Story = {
+  args: { status: "active", styleMap: STUDY_STATUS_STYLES },
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.keys(STUDY_STATUS_STYLES).map((s) => (
@@ -32,6 +33,7 @@ export const StudyStatuses: Story = {
 };
 
 export const ParticipantStatuses: Story = {
+  args: { status: "active", styleMap: PARTICIPANT_STATUS_STYLES },
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.keys(PARTICIPANT_STATUS_STYLES).map((s) => (
@@ -42,6 +44,7 @@ export const ParticipantStatuses: Story = {
 };
 
 export const PrototypeStatuses: Story = {
+  args: { status: "draft", styleMap: PROTOTYPE_STATUS_STYLES },
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.keys(PROTOTYPE_STATUS_STYLES).map((s) => (
@@ -52,6 +55,7 @@ export const PrototypeStatuses: Story = {
 };
 
 export const Roles: Story = {
+  args: { status: "designer", styleMap: ROLE_STYLES },
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.keys(ROLE_STYLES).map((s) => (
@@ -62,6 +66,7 @@ export const Roles: Story = {
 };
 
 export const Variants: Story = {
+  args: { status: "default", styleMap: VARIANT_BADGE_COLORS },
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.keys(VARIANT_BADGE_COLORS).map((s) => (
