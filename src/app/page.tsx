@@ -10,21 +10,21 @@ const routes = [
     external: true,
   },
   {
-    href: "/prototypes",
-    emoji: "🧩",
-    title: "Prototypes",
-    description: "Review all prototype variants and preview them",
-  },
-  {
     href: "/prototypers",
     emoji: "👤",
     title: "Prototypers",
     description: "Manage prototypers and their prototype portfolios",
   },
   {
+    href: "/prototypes",
+    emoji: "🧩",
+    title: "Prototypes",
+    description: "Review all prototype variants and preview them",
+  },
+  {
     href: "/user-research",
     emoji: "🔬",
-    title: "User Research",
+    title: "User Studies",
     description: "User experience research dashboard",
   },
   {

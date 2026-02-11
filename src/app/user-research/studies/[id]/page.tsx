@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Toast from "@/components/Toast";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -26,6 +27,8 @@ interface Study {
   prototyperId?: string;
   prototypeTitle?: string;
   prototypeVariant?: string;
+  prototypeType?: "file" | "link" | "default" | null;
+  prototypeUrl?: string;
   createdAt?: { seconds: number };
 }
 
@@ -36,7 +39,7 @@ interface Participant {
   persona?: string;
   userType?: string;
   studyId: string;
-  status: string;
+  studyStatus?: Record<string, string>;
   tokenUrl?: string;
   createdAt?: { seconds: number };
 }
@@ -73,6 +76,8 @@ interface Prototype {
   prototyperName: string;
   title: string;
   variant: string;
+  fileName: string;
+  url: string;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -152,32 +157,19 @@ export default function StudyDetailPage() {
     return () => unsub();
   }, [id]);
 
-  // Listen to participants for this study
+  // Listen to all participants (derive study-specific list client-side)
   useEffect(() => {
-    const q = query(collection(db, "participants"), where("studyId", "==", id));
-    const unsub = onSnapshot(q, (snap) => {
-      setParticipants(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Participant, "id">),
-        }))
-      );
+    const unsub = onSnapshot(collection(db, "participants"), (snap) => {
+      const all = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<Participant, "id">),
+      }));
+      all.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setAllParticipants(all);
+      setParticipants(all.filter((p) => p.studyStatus?.[id] || p.studyId === id));
     });
     return () => unsub();
   }, [id]);
-
-  // Listen to all participants (for the "add existing" dropdown)
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "participants"), (snap) => {
-      setAllParticipants(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Participant, "id">),
-        }))
-      );
-    });
-    return () => unsub();
-  }, []);
 
   // Listen to event count for this study
   useEffect(() => {
@@ -242,7 +234,7 @@ export default function StudyDetailPage() {
               id: d.id,
               prototyperId: p.id,
               prototyperName: p.name,
-              ...(d.data() as { title: string; variant: string }),
+              ...(d.data() as { title: string; variant: string; fileName: string; url: string }),
             }))
           );
           setPrototypes(Array.from(protosMap.values()).flat());
@@ -290,17 +282,26 @@ export default function StudyDetailPage() {
     }
   };
 
+  const [origStudyEdit, setOrigStudyEdit] = useState({ name: "", description: "", status: "", protoKey: "" });
+  const [toast, setToast] = useState<{ message: string; onUndo?: () => void } | null>(null);
+  const studyEditHasChanges = editName !== origStudyEdit.name || editDescription !== origStudyEdit.description || editStatus !== origStudyEdit.status || editProtoKey !== origStudyEdit.protoKey;
+
+  const confirmCloseEditStudy = () => {
+    if (studyEditHasChanges && !window.confirm("You have unsaved changes. Discard them?")) return;
+    setShowEditStudy(false);
+  };
+
   // Open edit study dialog
   const openEditStudy = () => {
     if (!study) return;
+    const protoKey = study.prototypeId && study.prototyperId
+      ? `${study.prototyperId}:${study.prototypeId}`
+      : "";
     setEditName(study.name);
     setEditDescription(study.description);
     setEditStatus(study.status);
-    setEditProtoKey(
-      study.prototypeId && study.prototyperId
-        ? `${study.prototyperId}:${study.prototypeId}`
-        : ""
-    );
+    setEditProtoKey(protoKey);
+    setOrigStudyEdit({ name: study.name, description: study.description, status: study.status, protoKey });
     setShowEditStudy(true);
   };
 
@@ -312,6 +313,23 @@ export default function StudyDetailPage() {
         ? prototypes.find((p) => `${p.prototyperId}:${p.id}` === editProtoKey)
         : null;
 
+      const protoType = selectedProto
+        ? selectedProto.url ? "link" : selectedProto.fileName ? "file" : "default"
+        : null;
+
+      // Capture previous values for undo
+      const prev = {
+        name: study!.name,
+        description: study!.description,
+        status: study!.status,
+        prototypeId: study!.prototypeId ?? null,
+        prototyperId: study!.prototyperId ?? null,
+        prototypeTitle: study!.prototypeTitle ?? null,
+        prototypeVariant: study!.prototypeVariant ?? null,
+        prototypeType: study!.prototypeType ?? null,
+        prototypeUrl: study!.prototypeUrl ?? null,
+      };
+
       await updateDoc(doc(db, "studies", id), {
         name: editName.trim(),
         description: editDescription.trim(),
@@ -320,8 +338,16 @@ export default function StudyDetailPage() {
         prototyperId: selectedProto?.prototyperId ?? null,
         prototypeTitle: selectedProto?.title ?? null,
         prototypeVariant: selectedProto?.variant ?? null,
+        prototypeType: protoType,
+        prototypeUrl: selectedProto?.url || null,
       });
       setShowEditStudy(false);
+      setToast({
+        message: `Updated "${editName.trim()}"`,
+        onUndo: () => {
+          updateDoc(doc(db, "studies", id), prev).catch(console.error);
+        },
+      });
     } catch (err) {
       console.error("Failed to update study:", err);
     } finally {
@@ -334,11 +360,14 @@ export default function StudyDetailPage() {
     if (!selectedParticipantId) return;
     setSavingParticipant(true);
     try {
+      const pName = allParticipants.find((x) => x.id === selectedParticipantId)?.name ?? "Participant";
       await updateDoc(doc(db, "participants", selectedParticipantId), {
         studyId: id,
+        [`studyStatus.${id}`]: "invited",
       });
       setSelectedParticipantId("");
       setShowAddParticipant(false);
+      setToast({ message: `Added "${pName}" to study` });
     } catch (err) {
       console.error("Failed to assign participant:", err);
     } finally {
@@ -351,16 +380,18 @@ export default function StudyDetailPage() {
     if (!newParticipantName.trim()) return;
     setSavingParticipant(true);
     try {
+      const savedName = newParticipantName.trim();
       await addDoc(collection(db, "participants"), {
-        name: newParticipantName.trim(),
+        name: savedName,
         email: newParticipantEmail.trim() || null,
         studyId: id,
-        status: "invited",
+        studyStatus: { [id]: "invited" },
         createdAt: serverTimestamp(),
       });
       setNewParticipantName("");
       setNewParticipantEmail("");
       setShowAddParticipant(false);
+      setToast({ message: `Created and added "${savedName}" to study` });
     } catch (err) {
       console.error("Failed to create participant:", err);
     } finally {
@@ -374,7 +405,20 @@ export default function StudyDetailPage() {
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   const handleCopyLink = async (p: Participant) => {
-    if (p.tokenUrl) {
+    const isLink = study?.prototypeType === "link" && study?.prototyperId && study?.prototypeId;
+    const isUploaded = study?.prototypeType === "file" && study?.prototyperId && study?.prototypeId;
+    const expectedBase = isLink
+      ? `/prototype/link/${study.prototyperId}/${study.prototypeId}`
+      : isUploaded
+        ? `/prototype/uploaded/${study.prototyperId}/${study.prototypeId}`
+        : "/prototype";
+    // Use cached tokenUrl only if it points to the correct prototype type
+    const cachedType = p.tokenUrl?.includes("/prototype/link/")
+      ? "link"
+      : p.tokenUrl?.includes("/prototype/uploaded/")
+        ? "file"
+        : "default";
+    if (p.tokenUrl && cachedType === (study?.prototypeType || "default")) {
       try {
         await navigator.clipboard.writeText(p.tokenUrl);
         setCopiedId(p.id);
@@ -384,9 +428,10 @@ export default function StudyDetailPage() {
       }
       return;
     }
-    // Generate a token if missing
+    // Generate a token (or regenerate if prototype URL changed)
     setGeneratingLink(p.id);
     try {
+      const prototypeUrl = (isLink || isUploaded) ? expectedBase : undefined;
       const tokenRes = await fetch("/api/auth/participant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -395,6 +440,7 @@ export default function StudyDetailPage() {
           studyId: id,
           name: p.name,
           prototypeVariant: study?.prototypeVariant,
+          prototypeUrl,
         }),
       });
       if (!tokenRes.ok) {
@@ -467,7 +513,7 @@ export default function StudyDetailPage() {
 
   // Participants not already assigned to this study
   const unassignedParticipants = allParticipants.filter(
-    (p) => p.studyId !== id
+    (p) => !p.studyStatus?.[id]
   );
 
   if (loading) {
@@ -511,14 +557,14 @@ export default function StudyDetailPage() {
                 {study.status}
               </span>
             </div>
-            {study.description && (
-              <p className="mt-1 text-sm text-secondary">{study.description}</p>
-            )}
             {study.createdAt && (
-              <p className="mt-1 text-xs text-faint">
+              <p className="mt-0.5 text-xs text-faint">
                 Created{" "}
                 {new Date(study.createdAt.seconds * 1000).toLocaleDateString()}
               </p>
+            )}
+            {study.description && (
+              <p className="mt-1 text-sm text-secondary">{study.description}</p>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -544,13 +590,13 @@ export default function StudyDetailPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowEditStudy(false);
+            if (e.target === e.currentTarget) confirmCloseEditStudy();
           }}
         >
           <div
             className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
-              if (e.key === "Escape") setShowEditStudy(false);
+              if (e.key === "Escape") confirmCloseEditStudy();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
                 handleSaveStudy();
@@ -560,7 +606,7 @@ export default function StudyDetailPage() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Edit Study</h2>
               <button
-                onClick={() => setShowEditStudy(false)}
+                onClick={confirmCloseEditStudy}
                 className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
@@ -642,14 +688,14 @@ export default function StudyDetailPage() {
               </div>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
-                  onClick={() => setShowEditStudy(false)}
+                  onClick={confirmCloseEditStudy}
                   className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveStudy}
-                  disabled={!editName.trim() || savingStudy}
+                  disabled={!editName.trim() || savingStudy || !studyEditHasChanges}
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingStudy ? "Saving..." : "Update Study"}
@@ -667,7 +713,23 @@ export default function StudyDetailPage() {
           <p className="mt-1 text-lg font-bold text-foreground">
             {study.prototypeTitle || "None selected"}
           </p>
-          {study.prototypeVariant && (
+          {study.prototypeType === "link" && study.prototyperId && study.prototypeId ? (
+            <Link
+              href={`/prototype/link/${study.prototyperId}/${study.prototypeId}`}
+              target="_blank"
+              className="mt-2 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+            >
+              Preview
+            </Link>
+          ) : study.prototypeType === "file" && study.prototyperId && study.prototypeId ? (
+            <Link
+              href={`/prototype/uploaded/${study.prototyperId}/${study.prototypeId}`}
+              target="_blank"
+              className="mt-2 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+            >
+              Preview
+            </Link>
+          ) : (study.prototypeType === "default" || !study.prototypeType) && study.prototypeVariant ? (
             <Link
               href={`/prototype?variant=${study.prototypeVariant}`}
               target="_blank"
@@ -675,7 +737,7 @@ export default function StudyDetailPage() {
             >
               Preview
             </Link>
-          )}
+          ) : null}
         </div>
         <div className="rounded-xl border border-edge bg-card p-4">
           <p className="text-xs font-medium uppercase text-muted">
@@ -876,11 +938,11 @@ export default function StudyDetailPage() {
                     )}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                        PARTICIPANT_STATUS_STYLES[p.status] ||
+                        PARTICIPANT_STATUS_STYLES[p.studyStatus?.[id] || "invited"] ||
                         PARTICIPANT_STATUS_STYLES.invited
                       }`}
                     >
-                      {p.status}
+                      {p.studyStatus?.[id] || "invited"}
                     </span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
@@ -1128,6 +1190,14 @@ export default function StudyDetailPage() {
           </div>
         )}
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          onUndo={toast.onUndo}
+          onDismiss={() => setToast(null)}
+        />
+      )}
 
       {/* Confirm dialog */}
       {confirmAction && (

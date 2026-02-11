@@ -97,7 +97,7 @@ export default function SetupPage() {
             persona: p.persona,
             userType: p.userType,
             studyId: study.id,
-            status: "invited",
+            studyStatus: { [study.id]: "invited" },
             tokenUrl: tokenData.url,
             createdAt: Timestamp.now(),
           });

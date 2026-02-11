@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/user-research", label: "Overview", icon: "📊" },
-  { href: "/user-research/dashboard", label: "Live Dashboard", icon: "📡" },
-  { href: "/user-research/studies", label: "Studies", icon: "🧪" },
   { href: "/user-research/participants", label: "Participants", icon: "👥" },
-  { href: "/user-research/synthetic-users", label: "Synthetic Users", icon: "🤖" },
+  { href: "/user-research/studies", label: "Studies", icon: "🧪" },
+  { href: "/user-research/dashboard", label: "Live Dashboard", icon: "📡" },
+  { href: "/user-research/synthetic-users", label: "Synthetic Users", icon: "🤖", badge: "WIP" },
 ];
 
 export default function UxrLayout({ children }: { children: ReactNode }) {
@@ -48,6 +48,11 @@ export default function UxrLayout({ children }: { children: ReactNode }) {
               >
                 <span className="text-base">{item.icon}</span>
                 {item.label}
+                {"badge" in item && item.badge && (
+                  <span className="ml-auto rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-400">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

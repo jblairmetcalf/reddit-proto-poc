@@ -3,7 +3,7 @@ import { createParticipantToken, verifyParticipantToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { participantId, studyId, name, prototypeVariant } = await req.json();
+    const { participantId, studyId, name, prototypeVariant, prototypeUrl } = await req.json();
 
     if (!participantId || !studyId || !name) {
       return NextResponse.json(
@@ -13,7 +13,9 @@ export async function POST(req: NextRequest) {
     }
 
     const token = await createParticipantToken({ participantId, studyId, name, prototypeVariant });
-    const url = `${req.nextUrl.origin}/prototype?token=${token}`;
+    const base = prototypeUrl || "/prototype";
+    const separator = base.includes("?") ? "&" : "?";
+    const url = `${req.nextUrl.origin}${base}${separator}token=${token}`;
 
     return NextResponse.json({ token, url });
   } catch (err) {

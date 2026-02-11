@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Toast from "@/components/Toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -9,6 +10,7 @@ import {
   updateDoc,
   onSnapshot,
   deleteDoc,
+  deleteField,
   getDocs,
   query,
   where,
@@ -39,6 +41,8 @@ interface Prototype {
   prototyperName: string;
   title: string;
   variant: string;
+  fileName: string;
+  url: string;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -101,7 +105,7 @@ export default function StudiesPage() {
               id: d.id,
               prototyperId: p.id,
               prototyperName: p.name,
-              ...(d.data() as { title: string; variant: string }),
+              ...(d.data() as { title: string; variant: string; fileName: string; url: string }),
             }))
           );
           setPrototypes(Array.from(protosMap.values()).flat());
@@ -126,22 +130,32 @@ export default function StudiesPage() {
     setShowForm(true);
   }
 
+  const [origStudy, setOrigStudy] = useState({ name: "", description: "", protoKey: "", status: "" });
+  const [toast, setToast] = useState<{ message: string; onUndo?: () => void } | null>(null);
+
   function openEdit(study: Study) {
+    const protoKey = study.prototypeId && study.prototyperId
+      ? `${study.prototyperId}:${study.prototypeId}`
+      : "";
     setName(study.name);
     setDescription(study.description);
-    setSelectedProtoKey(
-      study.prototypeId && study.prototyperId
-        ? `${study.prototyperId}:${study.prototypeId}`
-        : ""
-    );
+    setSelectedProtoKey(protoKey);
     setStatus(study.status);
     setEditingId(study.id);
+    setOrigStudy({ name: study.name, description: study.description, protoKey, status: study.status });
     setShowForm(true);
   }
+
+  const editHasChanges = editingId != null && (name !== origStudy.name || description !== origStudy.description || selectedProtoKey !== origStudy.protoKey || status !== origStudy.status);
 
   function closeForm() {
     resetForm();
     setShowForm(false);
+  }
+
+  function confirmCloseForm() {
+    if (editHasChanges && !window.confirm("You have unsaved changes. Discard them?")) return;
+    closeForm();
   }
 
   const handleSave = async () => {
@@ -153,6 +167,10 @@ export default function StudiesPage() {
         ? prototypes.find((p) => `${p.prototyperId}:${p.id}` === selectedProtoKey)
         : null;
 
+      const protoType = selectedProto
+        ? selectedProto.url ? "link" : selectedProto.fileName ? "file" : "default"
+        : null;
+
       const data: Record<string, unknown> = {
         name: name.trim(),
         description: description.trim(),
@@ -160,11 +178,37 @@ export default function StudiesPage() {
         prototyperId: selectedProto?.prototyperId ?? null,
         prototypeTitle: selectedProto?.title ?? null,
         prototypeVariant: selectedProto?.variant ?? null,
+        prototypeType: protoType,
+        prototypeUrl: selectedProto?.url || null,
       };
 
       if (editingId) {
+        const prevId = editingId;
+        const prev = { ...origStudy };
         data.status = status;
         await updateDoc(doc(db, "studies", editingId), data);
+        // Find original prototype for undo
+        const origProto = prev.protoKey
+          ? prototypes.find((p) => `${p.prototyperId}:${p.id}` === prev.protoKey)
+          : null;
+        const origProtoType = origProto
+          ? origProto.url ? "link" : origProto.fileName ? "file" : "default"
+          : null;
+        setToast({
+          message: `Updated "${name.trim()}"`,
+          onUndo: () => {
+            updateDoc(doc(db, "studies", prevId), {
+              name: prev.name,
+              description: prev.description,
+              status: prev.status,
+              prototypeId: origProto?.id ?? null,
+              prototyperId: origProto?.prototyperId ?? null,
+              prototypeTitle: origProto?.title ?? null,
+              prototypeVariant: origProto?.variant ?? null,
+              prototypeType: origProtoType,
+            }).catch(console.error);
+          },
+        });
       } else {
         data.status = "draft";
         data.createdAt = serverTimestamp();
@@ -195,9 +239,9 @@ export default function StudiesPage() {
       const surveySnap = await getDocs(query(collection(db, "survey_responses"), where("studyId", "==", id)));
       await Promise.all(surveySnap.docs.map((d) => deleteDoc(d.ref)));
 
-      // Unassign participants from this study (keep them in the platform)
+      // Remove this study's status from participants (keep them in the platform)
       const participantsSnap = await getDocs(query(collection(db, "participants"), where("studyId", "==", id)));
-      await Promise.all(participantsSnap.docs.map((d) => updateDoc(d.ref, { studyId: "", status: "invited", tokenUrl: null })));
+      await Promise.all(participantsSnap.docs.map((d) => updateDoc(d.ref, { [`studyStatus.${id}`]: deleteField() })));
 
       // Delete the study itself
       await deleteDoc(doc(db, "studies", id));
@@ -230,13 +274,13 @@ export default function StudiesPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) closeForm();
+            if (e.target === e.currentTarget) confirmCloseForm();
           }}
         >
           <div
             className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
-              if (e.key === "Escape") closeForm();
+              if (e.key === "Escape") confirmCloseForm();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
                 handleSave();
@@ -248,7 +292,7 @@ export default function StudiesPage() {
                 {editingId ? "Edit Study" : "Create Study"}
               </h2>
               <button
-                onClick={closeForm}
+                onClick={confirmCloseForm}
                 className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
@@ -337,14 +381,14 @@ export default function StudiesPage() {
               </div>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
-                  onClick={closeForm}
+                  onClick={confirmCloseForm}
                   className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!name.trim() || saving}
+                  disabled={!name.trim() || saving || (editingId != null && !editHasChanges)}
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving
@@ -401,18 +445,14 @@ export default function StudiesPage() {
                   {deleting === study.id ? "Deleting..." : "Delete"}
                 </button>
               </div>
-              {study.description && (
-                <p className="mt-2 text-sm text-secondary">
-                  {study.description}
+              <p className="mt-1 text-xs text-muted">
+                {study.prototypeTitle || "No prototype selected"}
+              </p>
+              {study.createdAt && (
+                <p className="mt-0.5 text-xs text-muted">
+                  {new Date(study.createdAt.seconds * 1000).toLocaleDateString()}
                 </p>
               )}
-              <p className="mt-2 text-xs text-muted">
-                {study.prototypeTitle
-                  ? `Prototype: ${study.prototypeTitle}`
-                  : "No prototype selected"}
-                {study.createdAt &&
-                  ` · Created ${new Date(study.createdAt.seconds * 1000).toLocaleDateString()}`}
-              </p>
             </div>
           ))}
         </div>
@@ -470,6 +510,9 @@ export default function StudiesPage() {
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
       )}
     </div>
   );

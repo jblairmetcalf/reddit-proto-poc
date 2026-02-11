@@ -188,13 +188,14 @@ function PrototypeToolbar({
         </Link>
         <span className="proto-toolbar-title">
           Viewing: {currentLabel}
+          {" "}
+          <button
+            className="proto-toolbar-toggle"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? "Close" : "Variants"}
+          </button>
         </span>
-        <button
-          className="proto-toolbar-toggle"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? "Close" : "All Prototypes"}
-        </button>
       </div>
       {menuOpen && (
         <div className="proto-toolbar-menu">
@@ -272,11 +273,14 @@ function PrototypeContent() {
             if (data.prototypeVariant && VARIANT_PRESETS[data.prototypeVariant]) {
               setVariantConfig(VARIANT_PRESETS[data.prototypeVariant]);
             }
-            // Update participant status to viewed (only if currently invited)
+            // Update participant study status to viewed (only if currently invited)
             const pRef = doc(db, "participants", data.participantId);
             getDoc(pRef).then((snap) => {
-              if (snap.exists() && snap.data().status === "invited") {
-                updateDoc(pRef, { status: "viewed" });
+              if (snap.exists()) {
+                const studyStatus = snap.data().studyStatus || {};
+                if (!studyStatus[data.studyId] || studyStatus[data.studyId] === "invited") {
+                  updateDoc(pRef, { [`studyStatus.${data.studyId}`]: "viewed" });
+                }
               }
             }).catch(console.error);
             // Bypass auth gate for valid participants (24h)

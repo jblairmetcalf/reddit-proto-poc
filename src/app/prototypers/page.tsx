@@ -24,6 +24,8 @@ interface Prototype {
   url: string;
   fileName: string;
   fileUrl: string;
+  modifiedAt?: { seconds: number };
+  createdAt?: { seconds: number };
 }
 
 interface Prototyper {
@@ -126,6 +128,15 @@ export default function PrototypersPage() {
     }
   };
 
+  // Latest prototype timestamp per prototyper
+  function latestProtoTimestamp(prototyperId: string): number {
+    const protos = protoMap[prototyperId] || [];
+    return protos.reduce((latest, p) => {
+      const ts = p.modifiedAt?.seconds ?? p.createdAt?.seconds ?? 0;
+      return ts > latest ? ts : latest;
+    }, 0);
+  }
+
   // Filter prototypers by search across all metadata
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -152,6 +163,13 @@ export default function PrototypersPage() {
         );
       })
     : prototypers;
+
+  // Sort by most recent prototype change, then by prototyper createdAt
+  filtered.sort((a, b) => {
+    const aTs = latestProtoTimestamp(a.id) || (a.createdAt?.seconds ?? 0);
+    const bTs = latestProtoTimestamp(b.id) || (b.createdAt?.seconds ?? 0);
+    return bTs - aTs;
+  });
 
   // Build matching prototype highlights for search
   function getMatchingProtos(prototyperId: string): Prototype[] {
@@ -358,23 +376,25 @@ export default function PrototypersPage() {
                 >
                   Delete
                 </button>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
-                  {p.name}
-                </h3>
-                {p.role && (
-                  <span
-                    className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[p.role] || "bg-subtle text-secondary"}`}
-                  >
-                    {p.role}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
+                    {p.name}
+                  </h3>
+                  {p.role && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[p.role] || "bg-subtle text-secondary"}`}
+                    >
+                      {p.role}
+                    </span>
+                  )}
+                </div>
+                {p.email && (
+                  <p className="mt-0.5 text-xs text-muted">{p.email}</p>
                 )}
-                <p className="mt-2 text-sm text-secondary">
+                <p className="mt-1 text-sm text-secondary">
                   {protos.length} prototype
                   {protos.length !== 1 ? "s" : ""}
                 </p>
-                {p.email && (
-                  <p className="mt-1 text-xs text-muted">{p.email}</p>
-                )}
                 {/* Show matching prototypes when searching */}
                 {matchingProtos.length > 0 && (
                   <div className="mt-3 space-y-1.5 border-t border-edge pt-3">

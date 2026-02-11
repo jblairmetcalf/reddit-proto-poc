@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Toast from "@/components/Toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -9,6 +10,7 @@ import {
   updateDoc,
   onSnapshot,
   deleteDoc,
+  deleteField,
   doc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -20,7 +22,7 @@ interface Participant {
   persona?: string;
   userType?: string;
   studyId: string;
-  status: "invited" | "active" | "completed" | "timed_out";
+  studyStatus?: Record<string, string>;
   tokenUrl?: string;
   createdAt?: { seconds: number };
 }
@@ -33,6 +35,7 @@ interface Study {
 
 const STATUS_STYLES: Record<string, string> = {
   invited: "bg-amber-500/20 text-amber-400",
+  viewed: "bg-cyan-500/20 text-cyan-400",
   active: "bg-green-500/20 text-green-400",
   completed: "bg-blue-500/20 text-blue-400",
   timed_out: "bg-red-500/20 text-red-400",
@@ -44,14 +47,11 @@ export default function ParticipantsPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [studyId, setStudyId] = useState("");
   const [creating, setCreating] = useState(false);
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editStudyId, setEditStudyId] = useState("");
-  const [editStatus, setEditStatus] = useState<Participant["status"]>("invited");
   const [saving, setSaving] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
@@ -88,14 +88,11 @@ export default function ParticipantsPage() {
       await addDoc(collection(db, "participants"), {
         name: name.trim(),
         email: email.trim() || null,
-        studyId: studyId || "",
-        status: "invited",
         createdAt: serverTimestamp(),
       });
 
       setName("");
       setEmail("");
-      setStudyId("");
       setShowInvite(false);
     } catch (err) {
       console.error("Failed to add participant:", err);
@@ -112,31 +109,47 @@ export default function ParticipantsPage() {
     }
   };
 
+  const [origEdit, setOrigEdit] = useState({ name: "", email: "" });
+  const [toast, setToast] = useState<{ message: string; onUndo?: () => void } | null>(null);
+
   const openEdit = (p: Participant) => {
     setEditingId(p.id);
     setEditName(p.name);
     setEditEmail(p.email || "");
-    setEditStudyId(p.studyId);
-    setEditStatus(p.status);
+    setOrigEdit({ name: p.name, email: p.email || "" });
   };
+
+  const editHasChanges = editName !== origEdit.name || editEmail !== origEdit.email;
 
   const closeEdit = () => {
     setEditingId(null);
     setEditName("");
     setEditEmail("");
-    setEditStudyId("");
-    setEditStatus("invited");
+  };
+
+  const confirmCloseEdit = () => {
+    if (editHasChanges && !window.confirm("You have unsaved changes. Discard them?")) return;
+    closeEdit();
   };
 
   const handleSaveEdit = async () => {
     if (!editingId || !editName.trim()) return;
     setSaving(true);
+    const prevId = editingId;
+    const prev = { ...origEdit };
     try {
       await updateDoc(doc(db, "participants", editingId), {
         name: editName.trim(),
         email: editEmail.trim() || null,
-        studyId: editStudyId,
-        status: editStatus,
+      });
+      setToast({
+        message: `Updated "${editName.trim()}"`,
+        onUndo: () => {
+          updateDoc(doc(db, "participants", prevId), {
+            name: prev.name,
+            email: prev.email || null,
+          }).catch(console.error);
+        },
       });
       closeEdit();
     } catch (err) {
@@ -145,6 +158,23 @@ export default function ParticipantsPage() {
       setSaving(false);
     }
   };
+
+  // Clean up stale study references from participants
+  useEffect(() => {
+    if (studies.length === 0 || participants.length === 0) return;
+    const studyIds = new Set(studies.map((s) => s.id));
+    for (const p of participants) {
+      if (!p.studyStatus) continue;
+      const staleKeys = Object.keys(p.studyStatus).filter((sid) => !studyIds.has(sid));
+      if (staleKeys.length > 0) {
+        const updates: Record<string, unknown> = {};
+        for (const key of staleKeys) {
+          updates[`studyStatus.${key}`] = deleteField();
+        }
+        updateDoc(doc(db, "participants", p.id), updates).catch(console.error);
+      }
+    }
+  }, [studies, participants]);
 
   const getStudyName = (sid: string) =>
     studies.find((s) => s.id === sid)?.name ?? sid;
@@ -175,7 +205,6 @@ export default function ParticipantsPage() {
               setShowInvite(false);
               setName("");
               setEmail("");
-              setStudyId("");
             }
           }}
         >
@@ -186,7 +215,6 @@ export default function ParticipantsPage() {
                 setShowInvite(false);
                 setName("");
                 setEmail("");
-                setStudyId("");
               }
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
@@ -203,7 +231,6 @@ export default function ParticipantsPage() {
                   setShowInvite(false);
                   setName("");
                   setEmail("");
-                  setStudyId("");
                 }}
                 className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
@@ -236,30 +263,12 @@ export default function ParticipantsPage() {
                   className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Study (optional)
-                </label>
-                <select
-                  value={studyId}
-                  onChange={(e) => setStudyId(e.target.value)}
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                >
-                  <option value="">No study</option>
-                  {studies.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   onClick={() => {
                     setShowInvite(false);
                     setName("");
                     setEmail("");
-                    setStudyId("");
                   }}
                   className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
@@ -283,13 +292,13 @@ export default function ParticipantsPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) closeEdit();
+            if (e.target === e.currentTarget) confirmCloseEdit();
           }}
         >
           <div
             className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
-              if (e.key === "Escape") closeEdit();
+              if (e.key === "Escape") confirmCloseEdit();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
                 handleSaveEdit();
@@ -301,7 +310,7 @@ export default function ParticipantsPage() {
                 Edit Participant
               </h2>
               <button
-                onClick={closeEdit}
+                onClick={confirmCloseEdit}
                 className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
@@ -333,52 +342,16 @@ export default function ParticipantsPage() {
                   className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
                 />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Study
-                  </label>
-                  <select
-                    value={editStudyId}
-                    onChange={(e) => setEditStudyId(e.target.value)}
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="">No study</option>
-                    {studies.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Status
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) =>
-                      setEditStatus(e.target.value as Participant["status"])
-                    }
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="invited">Invited</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="timed_out">Timed Out</option>
-                  </select>
-                </div>
-              </div>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
-                  onClick={closeEdit}
+                  onClick={confirmCloseEdit}
                   className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  disabled={!editName.trim() || saving}
+                  disabled={!editName.trim() || saving || !editHasChanges}
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving..." : "Update Participant"}
@@ -415,15 +388,19 @@ export default function ParticipantsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted">
-                    {p.studyId
-                      ? <>Study: <Link href={`/user-research/studies/${p.studyId}`} className="text-secondary hover:text-orange-400 transition-colors">{getStudyName(p.studyId)}</Link></>
-                      : "No study assigned"}
-                    {p.userType && ` · ${p.userType}`}
-                    {p.email && ` · ${p.email}`}
-                    {p.createdAt &&
-                      ` · ${new Date(p.createdAt.seconds * 1000).toLocaleDateString()}`}
+                  <p className="mt-0.5 text-xs text-muted">
+                    {[p.email, p.createdAt && new Date(p.createdAt.seconds * 1000).toLocaleDateString()].filter(Boolean).join(" · ")}
                   </p>
+                  {p.studyStatus && Object.keys(p.studyStatus).length > 0 && (
+                    <div className="mt-1.5">
+                      {Object.entries(p.studyStatus).map(([sid, status]) => (
+                        <div key={sid} className="flex items-center gap-1.5 mt-0.5 text-xs">
+                          <Link href={`/user-research/studies/${sid}`} className="text-secondary hover:text-orange-400 transition-colors">{getStudyName(sid)}</Link>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${STATUS_STYLES[status] || STATUS_STYLES.invited}`}>{status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="ml-4 flex items-center gap-2">
                   <button
@@ -500,6 +477,9 @@ export default function ParticipantsPage() {
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
       )}
     </div>
   );

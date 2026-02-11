@@ -10,15 +10,10 @@ import { useTracking } from "@/hooks/useTracking";
 
 interface Prototype {
   title: string;
-  fileName: string;
-  fileUrl: string;
+  url: string;
 }
 
-function getFileExtension(fileName: string): string {
-  return fileName.split(".").pop()?.toLowerCase() ?? "";
-}
-
-function UploadedPreviewContent() {
+function LinkPreviewContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const prototyperId = params.prototyperId as string;
@@ -86,16 +81,6 @@ function UploadedPreviewContent() {
 
   const isParticipant = !!token && !!participantId && !!studyId;
 
-  const surveyOverlay = isParticipant ? (
-    <SurveyOverlay
-      participantId={participantId}
-      studyId={studyId}
-      variant={variant}
-      sessionId={getSessionId()}
-      onTrack={handleTrack}
-    />
-  ) : null;
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -112,102 +97,36 @@ function UploadedPreviewContent() {
     );
   }
 
-  if (!proto.fileUrl) {
+  if (!proto.url) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <p className="text-sm text-zinc-500">
-          No file uploaded for this prototype.
-        </p>
+        <p className="text-sm text-zinc-500">No URL set for this prototype.</p>
       </div>
     );
   }
 
-  const ext = getFileExtension(proto.fileName);
-  const imageExts = ["png", "jpg", "jpeg", "gif", "svg", "webp"];
-  const isImage = imageExts.includes(ext);
-  const isHtml = ext === "html" || ext === "htm";
-  const isJsx = ext === "jsx" || ext === "tsx";
-  const isZip = ext === "zip";
-  const isPdf = ext === "pdf";
-
-  // HTML, JSX/TSX → serve via API proxy
-  if (isHtml || isJsx) {
-    return (
-      <>
-        <iframe
-          src={`/api/prototype/serve/${prototyperId}/${protoId}/${proto.fileName}`}
-          title={proto.title}
-          sandbox="allow-scripts"
-          className="h-screen w-screen border-0"
-        />
-        {surveyOverlay}
-      </>
-    );
-  }
-
-  // ZIP → serve index.html from extracted archive via API proxy
-  if (isZip) {
-    return (
-      <>
-        <iframe
-          src={`/api/prototype/serve/${prototyperId}/${protoId}/index.html`}
-          title={proto.title}
-          sandbox="allow-scripts"
-          className="h-screen w-screen border-0"
-        />
-        {surveyOverlay}
-      </>
-    );
-  }
-
-  // PDF → direct URL works fine
-  if (isPdf) {
-    return (
-      <>
-        <iframe
-          src={proto.fileUrl}
-          title={proto.title}
-          className="h-screen w-screen border-0"
-        />
-        {surveyOverlay}
-      </>
-    );
-  }
-
-  if (isImage) {
-    return (
-      <>
-        <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-8">
-          <img
-            src={proto.fileUrl}
-            alt={proto.title}
-            className="max-h-[90vh] max-w-full rounded-lg"
-          />
-        </div>
-        {surveyOverlay}
-      </>
-    );
-  }
-
-  // Fallback: download link
   return (
     <>
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-950">
-        <p className="text-sm text-zinc-400">{proto.fileName}</p>
-        <a
-          href={proto.fileUrl}
-          download={proto.fileName}
-          className="rounded-lg bg-orange-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-orange-500"
-        >
-          Download File
-        </a>
-      </div>
-      {surveyOverlay}
+      <iframe
+        src={proto.url}
+        title={proto.title}
+        className="h-screen w-screen border-0"
+        allow="fullscreen"
+      />
+      {isParticipant && (
+        <SurveyOverlay
+          participantId={participantId}
+          studyId={studyId}
+          variant={variant}
+          sessionId={getSessionId()}
+          onTrack={handleTrack}
+        />
+      )}
     </>
   );
 }
 
-export default function UploadedPreviewPage() {
+export default function LinkPreviewPage() {
   return (
     <Suspense
       fallback={
@@ -216,7 +135,7 @@ export default function UploadedPreviewPage() {
         </div>
       }
     >
-      <UploadedPreviewContent />
+      <LinkPreviewContent />
     </Suspense>
   );
 }

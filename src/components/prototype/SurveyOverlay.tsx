@@ -128,7 +128,7 @@ export default function SurveyOverlay({
         satisfaction,
         hasFeedback: !!feedback.trim(),
       });
-      updateDoc(doc(db, "participants", participantId), { status: "completed" }).catch(console.error);
+      updateDoc(doc(db, "participants", participantId), { [`studyStatus.${studyId}`]: "completed" }).catch(console.error);
       setPreviousResponse({ easeOfUse, foundContent, satisfaction, feedback: feedback.trim() || null });
       setShowModal(false);
     } catch (err) {

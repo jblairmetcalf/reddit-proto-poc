@@ -221,7 +221,10 @@ async function serveJsx(fileUrl: string, fileName: string) {
   });
 
   // Find default-exported component name for auto-render
-  const nameMatch = code.match(/export\s+default\s+function\s+(\w+)/);
+  // Matches: export default function Foo, export default class Foo, export default Foo
+  const nameMatch =
+    code.match(/export\s+default\s+(?:function|class)\s+(\w+)/) ??
+    code.match(/export\s+default\s+(\w+)\s*;/);
   const componentName = nameMatch?.[1] ?? null;
 
   // Ensure React is importable (classic JSX emits React.createElement)

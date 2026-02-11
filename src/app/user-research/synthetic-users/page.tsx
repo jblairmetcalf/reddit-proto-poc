@@ -204,7 +204,12 @@ export default function SyntheticUsersPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Synthetic Users</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">Synthetic Users</h1>
+            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">
+              WIP
+            </span>
+          </div>
           <p className="mt-1 text-sm text-secondary">
             Create and manage synthetic user personas for prototype testing
           </p>

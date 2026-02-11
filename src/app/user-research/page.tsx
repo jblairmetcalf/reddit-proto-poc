@@ -4,12 +4,12 @@ import Link from "next/link";
 
 const cards = [
   {
-    href: "/user-research/dashboard",
-    title: "Live Dashboard",
-    icon: "📡",
-    description: "Real-time event stream and session metrics from prototype interactions",
-    stat: "Live",
-    statColor: "text-green-400",
+    href: "/user-research/participants",
+    title: "Participants",
+    icon: "👥",
+    description: "Invite participants, generate token links, and track completion",
+    stat: "Invite",
+    statColor: "text-blue-400",
   },
   {
     href: "/user-research/studies",
@@ -20,20 +20,21 @@ const cards = [
     statColor: "text-orange-400",
   },
   {
-    href: "/user-research/participants",
-    title: "Participants",
-    icon: "👥",
-    description: "Invite participants, generate token links, and track completion",
-    stat: "Invite",
-    statColor: "text-blue-400",
+    href: "/user-research/dashboard",
+    title: "Live Dashboard",
+    icon: "📡",
+    description: "Real-time event stream and session metrics from prototype interactions",
+    stat: "Live",
+    statColor: "text-green-400",
   },
   {
     href: "/user-research/synthetic-users",
     title: "Synthetic Users",
     icon: "🤖",
     description: "Create and manage synthetic user personas like new, casual, core, commenter, and poster",
-    stat: "Personas",
-    statColor: "text-teal-400",
+    stat: "WIP",
+    statColor: "text-amber-400",
+    badge: "WIP",
   },
 ];
 
@@ -60,9 +61,16 @@ export default function UxrOverview() {
                 {card.stat}
               </span>
             </div>
-            <h2 className="text-base font-semibold text-foreground group-hover:text-orange-400">
-              {card.title}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-foreground group-hover:text-orange-400">
+                {card.title}
+              </h2>
+              {"badge" in card && card.badge && (
+                <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-400">
+                  {card.badge}
+                </span>
+              )}
+            </div>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
               {card.description}
             </p>

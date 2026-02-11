@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Toast from "@/components/Toast";
 import { db, storage } from "@/lib/firebase";
 import {
   collection,
@@ -91,7 +92,7 @@ export default function PrototyperDetailPage() {
           id: d.id,
           ...(d.data() as Omit<Prototype, "id">),
         }));
-        docs.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+        docs.sort((a, b) => (b.modifiedAt?.seconds ?? b.createdAt?.seconds ?? 0) - (a.modifiedAt?.seconds ?? a.createdAt?.seconds ?? 0));
         setPrototypes(docs);
       }
     );
@@ -116,15 +117,27 @@ export default function PrototyperDetailPage() {
     setShowForm(true);
   }
 
+  const [origProto, setOrigProto] = useState({ title: "", description: "", status: "", protoType: "", variant: "", url: "", fileName: "" });
+  const [toast, setToast] = useState<{ message: string; onUndo?: () => void } | null>(null);
+
+  const editHasChanges = editingId != null && (fileRef != null || title !== origProto.title || description !== origProto.description || status !== origProto.status || protoType !== origProto.protoType || variant !== origProto.variant || url !== origProto.url || fileName !== origProto.fileName);
+
+  const confirmCloseForm = () => {
+    if (editingId && editHasChanges && !window.confirm("You have unsaved changes. Discard them?")) return;
+    closeForm();
+  };
+
   function openEdit(proto: Prototype) {
+    const pt = proto.url ? "link" : proto.fileName ? "file" : "default";
     setTitle(proto.title);
     setDescription(proto.description);
     setStatus(proto.status);
-    setProtoType(proto.url ? "link" : proto.fileName ? "file" : "default");
+    setProtoType(pt);
     setVariant(proto.variant);
     setUrl(proto.url);
     setFileName(proto.fileName);
     setEditingId(proto.id);
+    setOrigProto({ title: proto.title, description: proto.description, status: proto.status, protoType: pt, variant: proto.variant, url: proto.url, fileName: proto.fileName });
     setShowForm(true);
   }
 
@@ -182,14 +195,34 @@ export default function PrototyperDetailPage() {
       };
 
       if (editingId) {
+        // Capture previous values for undo
+        const prevProto = prototypes.find((p) => p.id === editingId);
+        const prevData = prevProto ? {
+          title: prevProto.title,
+          description: prevProto.description,
+          status: prevProto.status,
+          variant: prevProto.variant,
+          url: prevProto.url,
+          fileName: prevProto.fileName,
+          fileUrl: prevProto.fileUrl,
+        } : null;
         await updateDoc(doc(db, "prototypers", id, "prototypes", editingId), data);
+        const savedTitle = title.trim();
+        const savedEditingId = editingId;
+        closeForm();
+        setToast({
+          message: `Updated "${savedTitle}"`,
+          onUndo: prevData ? () => {
+            updateDoc(doc(db, "prototypers", id, "prototypes", savedEditingId), prevData).catch(console.error);
+          } : undefined,
+        });
       } else {
         await addDoc(collection(db, "prototypers", id, "prototypes"), {
           ...data,
           createdAt: serverTimestamp(),
         });
+        closeForm();
       }
-      closeForm();
     } catch (err) {
       console.error("Failed to save prototype:", err);
     } finally {
@@ -248,8 +281,14 @@ export default function PrototyperDetailPage() {
               )}
             </div>
             {prototyper.email && (
-              <p className="mt-1 text-sm text-secondary">{prototyper.email}</p>
+              <p className="mt-0.5 text-xs text-secondary">{prototyper.email}</p>
             )}
+            <p className="mt-0.5 text-xs text-muted">
+              {prototypes.length} prototype{prototypes.length !== 1 ? "s" : ""}
+              {latestModified && (
+                <> &middot; Last modified {new Date(latestModified).toLocaleDateString()}</>
+              )}
+            </p>
           </div>
           <button
             onClick={openCreate}
@@ -258,28 +297,6 @@ export default function PrototyperDetailPage() {
             Add Prototype
           </button>
         </div>
-
-        {/* Stats row */}
-        <div className="mt-4 flex gap-6">
-          <div className="rounded-lg border border-edge bg-card px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
-              Prototypes
-            </p>
-            <p className="mt-1 text-lg font-bold text-foreground">
-              {prototypes.length}
-            </p>
-          </div>
-          <div className="rounded-lg border border-edge bg-card px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
-              Latest Modified
-            </p>
-            <p className="mt-1 text-lg font-bold text-foreground">
-              {latestModified
-                ? new Date(latestModified).toLocaleDateString()
-                : "\u2014"}
-            </p>
-          </div>
-        </div>
       </header>
 
       {/* Create / Edit dialog */}
@@ -287,13 +304,13 @@ export default function PrototyperDetailPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) closeForm();
+            if (e.target === e.currentTarget) confirmCloseForm();
           }}
         >
           <div
             className="w-full max-w-lg rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
             onKeyDown={(e) => {
-              if (e.key === "Escape") closeForm();
+              if (e.key === "Escape") confirmCloseForm();
               if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
                 e.preventDefault();
                 handleSave();
@@ -305,7 +322,7 @@ export default function PrototyperDetailPage() {
                 {editingId ? "Edit Prototype" : "Add Prototype"}
               </h2>
               <button
-                onClick={closeForm}
+                onClick={confirmCloseForm}
                 className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
               >
                 &times;
@@ -450,14 +467,14 @@ export default function PrototyperDetailPage() {
               )}
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
-                  onClick={closeForm}
+                  onClick={confirmCloseForm}
                   className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!title.trim() || saving}
+                  disabled={!title.trim() || saving || (editingId != null && !editHasChanges)}
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving
@@ -532,89 +549,90 @@ export default function PrototyperDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
           {prototypes.map((proto) => (
             <div
               key={proto.id}
-              className="rounded-xl border border-edge bg-card p-6 transition-colors hover:border-edge-strong"
+              className="flex items-center justify-between rounded-xl border border-edge bg-card px-5 py-4 transition-colors hover:border-edge-strong"
             >
-              <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {proto.title}
-                </h3>
-                <div className="ml-2 flex items-center gap-1">
-                  <button
-                    onClick={() => openEdit(proto)}
-                    className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground truncate">
+                    {proto.title}
+                  </h3>
+                  <span
+                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
                   >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setConfirmAction(() => () => handleDelete(proto.id));
-                      setConfirmMessage(`Delete "${proto.title}"?`);
-                    }}
-                    className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
-                  >
-                    Delete
-                  </button>
+                    {proto.status}
+                  </span>
                 </div>
+                {proto.description && (
+                  <p className="mt-0.5 text-xs text-secondary truncate">
+                    {proto.description}
+                  </p>
+                )}
+                {proto.modifiedAt && (
+                  <p className="mt-0.5 text-[10px] text-muted">
+                    Modified{" "}
+                    {new Date(
+                      proto.modifiedAt.seconds * 1000
+                    ).toLocaleDateString()}
+                  </p>
+                )}
               </div>
-              {proto.description && (
-                <p className="mt-2 text-sm text-secondary">
-                  {proto.description}
-                </p>
-              )}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
-                >
-                  {proto.status}
-                </span>
-                <span className="rounded-full bg-input px-2 py-0.5 text-[10px] font-medium text-secondary">
-                  {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
-                </span>
-              </div>
-              {proto.modifiedAt && (
-                <p className="mt-3 text-xs text-muted">
-                  Modified{" "}
-                  {new Date(
-                    proto.modifiedAt.seconds * 1000
-                  ).toLocaleDateString()}
-                </p>
-              )}
-              {proto.url ? (
-                <a
-                  href={proto.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                >
-                  Preview
-                </a>
-              ) : proto.fileName ? (
-                <div className="mt-3 flex items-center gap-2">
+              <div className="ml-4 flex flex-shrink-0 items-center gap-2">
+                {proto.url ? (
                   <Link
-                    href={`/prototype/uploaded/${id}/${proto.id}`}
+                    href={`/prototype/link/${id}/${proto.id}`}
                     target="_blank"
-                    className="inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                   >
                     Preview
                   </Link>
-                  <span className="text-xs text-muted">{proto.fileName}</span>
-                </div>
-              ) : (
-                <Link
-                  href={`/prototype?variant=${proto.variant}`}
-                  target="_blank"
-                  className="mt-3 inline-block rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                ) : proto.fileName ? (
+                  <Link
+                    href={`/prototype/uploaded/${id}/${proto.id}`}
+                    target="_blank"
+                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                  >
+                    Preview
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/prototype?variant=${proto.variant}`}
+                    target="_blank"
+                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                  >
+                    Preview
+                  </Link>
+                )}
+                <button
+                  onClick={() => openEdit(proto)}
+                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
                 >
-                  Preview
-                </Link>
-              )}
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setConfirmAction(() => () => handleDelete(proto.id));
+                    setConfirmMessage(`Delete "${proto.title}"?`);
+                  }}
+                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          onUndo={toast.onUndo}
+          onDismiss={() => setToast(null)}
+        />
       )}
 
       {/* Confirm dialog */}

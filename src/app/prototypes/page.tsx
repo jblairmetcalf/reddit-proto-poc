@@ -96,8 +96,10 @@ export default function PrototypesPage() {
               ...(d.data() as Omit<Prototype, "id" | "prototyperId" | "prototyperName" | "prototyperRole">),
             }))
           );
-          // Flatten all prototypes
-          setAllPrototypes(Array.from(protosMap.values()).flat());
+          // Flatten all prototypes and sort by most recently updated
+          const all = Array.from(protosMap.values()).flat();
+          all.sort((a, b) => (b.modifiedAt?.seconds ?? b.createdAt?.seconds ?? 0) - (a.modifiedAt?.seconds ?? a.createdAt?.seconds ?? 0));
+          setAllPrototypes(all);
         },
         (err) => console.error(`Prototypes snapshot error for ${p.name}:`, err)
       );
@@ -131,6 +133,7 @@ export default function PrototypesPage() {
   const handleCreateStudy = async (proto: Prototype) => {
     setCreatingStudy(proto.id);
     try {
+      const protoType = proto.url ? "link" : proto.fileName ? "file" : "default";
       const ref = await addDoc(collection(db, "studies"), {
         name: `${proto.title} Study`,
         description: "",
@@ -139,6 +142,8 @@ export default function PrototypesPage() {
         prototyperId: proto.prototyperId,
         prototypeTitle: proto.title,
         prototypeVariant: proto.variant,
+        prototypeType: protoType,
+        prototypeUrl: proto.url || null,
         createdAt: serverTimestamp(),
       });
       router.push(`/user-research/studies/${ref.id}`);
@@ -198,65 +203,51 @@ export default function PrototypesPage() {
             </p>
           </div>
         ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-3">
               {filtered.map((proto) => (
                 <div
                   key={`${proto.prototyperId}-${proto.id}`}
-                  className="rounded-xl border border-edge bg-card p-6 transition-colors hover:border-edge-strong"
+                  className="flex items-center justify-between rounded-xl border border-edge bg-card px-5 py-4 transition-colors hover:border-edge-strong"
                 >
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {proto.title}
-                  </h3>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
-                    >
-                      {proto.status}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VARIANT_BADGE_COLORS[proto.variant] || VARIANT_BADGE_COLORS.default}`}
-                    >
-                      {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
-                    </span>
-                  </div>
-                  {proto.description && (
-                    <p className="mt-2 text-sm text-secondary">
-                      {proto.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-3 text-xs text-muted">
-                    <Link
-                      href={`/prototypers/${proto.prototyperId}`}
-                      className="hover:text-orange-400 transition-colors"
-                    >
-                      {proto.prototyperName}
-                    </Link>
-                    {proto.prototyperRole && (
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {proto.title}
+                      </h3>
                       <span
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${ROLE_STYLES[proto.prototyperRole] || "bg-subtle text-secondary"}`}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
                       >
-                        {proto.prototyperRole}
+                        {proto.status}
                       </span>
-                    )}
-                    {proto.modifiedAt && (
-                      <span className="text-[10px]">
-                        Modified{" "}
-                        {new Date(
-                          proto.modifiedAt.seconds * 1000
-                        ).toLocaleDateString()}
-                      </span>
-                    )}
+                      {proto.variant && proto.variant !== "default" && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VARIANT_BADGE_COLORS[proto.variant] || VARIANT_BADGE_COLORS.default}`}
+                        >
+                          {VARIANT_PRESETS[proto.variant]?.label ?? proto.variant}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted">
+                      <Link
+                        href={`/prototypers/${proto.prototyperId}`}
+                        className="hover:text-orange-400 transition-colors"
+                      >
+                        {proto.prototyperName}
+                      </Link>
+                      {proto.modifiedAt && (
+                        <> &middot; {new Date(proto.modifiedAt.seconds * 1000).toLocaleDateString()}</>
+                      )}
+                    </p>
                   </div>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="ml-4 flex items-center gap-2 flex-shrink-0">
                     {proto.url ? (
-                      <a
-                        href={proto.url}
+                      <Link
+                        href={`/prototype/link/${proto.prototyperId}/${proto.id}`}
                         target="_blank"
-                        rel="noopener noreferrer"
                         className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
                       >
                         Preview
-                      </a>
+                      </Link>
                     ) : proto.fileName ? (
                       <Link
                         href={`/prototype/uploaded/${proto.prototyperId}/${proto.id}`}
