@@ -91,6 +91,7 @@ export const Large: Story = {
 };
 
 export const Interactive: Story = {
+  args: { open: false, onClose: fn(), title: "Interactive Dialog", children: null },
   render: () => {
     const [open, setOpen] = useState(false);
     return (
