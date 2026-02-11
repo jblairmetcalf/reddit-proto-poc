@@ -41,6 +41,7 @@ export const WithChildren: Story = {
 };
 
 export const StatsRow: Story = {
+  args: { label: "Prototype", value: "Feed Sorting v2" },
   decorators: [
     (Story) => (
       <div style={{ width: 700 }}>
