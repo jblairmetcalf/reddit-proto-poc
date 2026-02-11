@@ -208,7 +208,16 @@ export default function StudiesPage() {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeForm();
+              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">
                 {editingId ? "Edit Study" : "Create Study"}
@@ -226,6 +235,7 @@ export default function StudiesPage() {
                   Study Name
                 </label>
                 <input
+                  autoFocus
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -398,7 +408,22 @@ export default function StudiesPage() {
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+              if (e.key === "Enter") {
+                confirmAction();
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+            }}
+          >
             <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
             <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">

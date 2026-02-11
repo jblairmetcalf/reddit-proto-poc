@@ -201,7 +201,21 @@ export default function ParticipantsPage() {
             }
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setShowInvite(false);
+                setName("");
+                setEmail("");
+                setStudyId("");
+              }
+              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                handleInvite();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">
                 Invite Participant
@@ -224,6 +238,7 @@ export default function ParticipantsPage() {
                   Name
                 </label>
                 <input
+                  autoFocus
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -298,7 +313,16 @@ export default function ParticipantsPage() {
             if (e.target === e.currentTarget) closeEdit();
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeEdit();
+              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                handleSaveEdit();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">
                 Edit Participant
@@ -316,6 +340,7 @@ export default function ParticipantsPage() {
                   Name
                 </label>
                 <input
+                  autoFocus
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -466,7 +491,22 @@ export default function ParticipantsPage() {
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+              if (e.key === "Enter") {
+                confirmAction();
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+            }}
+          >
             <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
             <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">

@@ -488,7 +488,16 @@ export default function StudyDetailPage() {
             if (e.target === e.currentTarget) setShowEditStudy(false);
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowEditStudy(false);
+              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                handleSaveStudy();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">Edit Study</h2>
               <button
@@ -504,6 +513,7 @@ export default function StudyDetailPage() {
                   Study Name
                 </label>
                 <input
+                  autoFocus
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -641,7 +651,17 @@ export default function StudyDetailPage() {
               if (e.target === e.currentTarget) setShowAddParticipant(false);
             }}
           >
-            <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div
+              className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowAddParticipant(false);
+                if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                  e.preventDefault();
+                  if (addMode === "existing") handleAddExistingParticipant();
+                  else handleCreateParticipant();
+                }
+              }}
+            >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white">
                   Add Participant
@@ -943,7 +963,22 @@ export default function StudyDetailPage() {
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+              if (e.key === "Enter") {
+                confirmAction();
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+            }}
+          >
             <h2 className="text-sm font-semibold text-white">Confirm</h2>
             <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">

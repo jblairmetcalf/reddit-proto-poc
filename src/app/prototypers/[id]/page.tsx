@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import {
   collection,
   addDoc,
@@ -13,6 +13,7 @@ import {
   doc,
   serverTimestamp,
 } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { VARIANT_PRESETS } from "@/lib/variants";
 
 interface Prototyper {
@@ -29,6 +30,7 @@ interface Prototype {
   variant: string;
   url: string;
   fileName: string;
+  fileUrl: string;
   modifiedAt?: { seconds: number };
   createdAt?: { seconds: number };
 }
@@ -60,6 +62,8 @@ export default function PrototyperDetailPage() {
   const [variant, setVariant] = useState("default");
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileRef, setFileRef] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
@@ -102,6 +106,8 @@ export default function PrototyperDetailPage() {
     setVariant("default");
     setUrl("");
     setFileName("");
+    setFileRef(null);
+    setUploadProgress(null);
     setEditingId(null);
   }
 
@@ -131,6 +137,36 @@ export default function PrototyperDetailPage() {
     if (!title.trim()) return;
     setSaving(true);
     try {
+      let resolvedFileUrl = "";
+
+      // Upload file to Firebase Storage if file type with a new file selected
+      if (protoType === "file" && fileRef) {
+        const storagePath = `prototypes/${id}/${Date.now()}_${fileRef.name}`;
+        const storageRef = ref(storage, storagePath);
+        const uploadTask = uploadBytesResumable(storageRef, fileRef);
+
+        await new Promise<void>((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              setUploadProgress(
+                Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+              );
+            },
+            reject,
+            () => resolve()
+          );
+        });
+
+        resolvedFileUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        setUploadProgress(null);
+      }
+
+      // When editing a file prototype with no new file, keep existing fileUrl
+      const existingProto = editingId
+        ? prototypes.find((p) => p.id === editingId)
+        : null;
+
       const data = {
         title: title.trim(),
         description: description.trim(),
@@ -138,6 +174,10 @@ export default function PrototyperDetailPage() {
         variant: protoType === "default" ? variant : "default",
         url: protoType === "link" ? url.trim() : "",
         fileName: protoType === "file" ? fileName : "",
+        fileUrl:
+          protoType === "file"
+            ? resolvedFileUrl || existingProto?.fileUrl || ""
+            : "",
         modifiedAt: serverTimestamp(),
       };
 
@@ -154,6 +194,7 @@ export default function PrototyperDetailPage() {
       console.error("Failed to save prototype:", err);
     } finally {
       setSaving(false);
+      setUploadProgress(null);
     }
   };
 
@@ -245,7 +286,16 @@ export default function PrototyperDetailPage() {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
-          <div className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeForm();
+              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">
                 {editingId ? "Edit Prototype" : "Add Prototype"}
@@ -263,6 +313,7 @@ export default function PrototyperDetailPage() {
                   Title
                 </label>
                 <input
+                  autoFocus
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -365,13 +416,27 @@ export default function PrototyperDetailPage() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       setFileName(file ? file.name : "");
+                      setFileRef(file ?? null);
                     }}
                     className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-600"
                   />
-                  {editingId && fileName && (
+                  {editingId && fileName && !fileRef && (
                     <p className="mt-1 text-[10px] text-zinc-600">
                       Current: {fileName}
                     </p>
+                  )}
+                  {uploadProgress !== null && (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full rounded-full bg-zinc-700">
+                        <div
+                          className="h-1.5 rounded-full bg-orange-500 transition-all"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[10px] text-zinc-500">
+                        Uploading... {uploadProgress}%
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
@@ -468,9 +533,16 @@ export default function PrototyperDetailPage() {
                   Preview &rarr;
                 </a>
               ) : proto.fileName ? (
-                <p className="mt-3 text-[10px] text-zinc-600">
-                  File: {proto.fileName}
-                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <Link
+                    href={`/prototype/uploaded/${id}/${proto.id}`}
+                    target="_blank"
+                    className="inline-block rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-orange-500 hover:text-orange-400"
+                  >
+                    Preview &rarr;
+                  </Link>
+                  <span className="text-[10px] text-zinc-600">{proto.fileName}</span>
+                </div>
               ) : (
                 <Link
                   href={`/prototype?variant=${proto.variant}`}
@@ -496,7 +568,22 @@ export default function PrototyperDetailPage() {
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div
+            className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+              if (e.key === "Enter") {
+                confirmAction();
+                setConfirmAction(null);
+                setConfirmMessage("");
+              }
+            }}
+          >
             <h2 className="text-sm font-semibold text-white">Confirm Delete</h2>
             <p className="mt-2 text-sm text-zinc-400">{confirmMessage}</p>
             <div className="mt-4 flex items-center justify-end gap-3">
