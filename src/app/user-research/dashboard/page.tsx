@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ConfirmDialog, StatCard } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -158,8 +159,7 @@ export default function DashboardPage() {
 
   const selectedStudy = studies.find((s) => s.id === selectedStudyId);
 
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const handleClearEvents = async (studyFilter?: string) => {
@@ -205,11 +205,15 @@ export default function DashboardPage() {
             onClick={() => {
               if (selectedStudyId) {
                 const studyName = selectedStudy?.name || selectedStudyId;
-                setConfirmAction(() => () => handleClearEvents(selectedStudyId));
-                setConfirmMessage(`Delete all tracking events for "${studyName}"?`);
+                setConfirmState({
+                  message: `Delete all tracking events for "${studyName}"?`,
+                  action: () => handleClearEvents(selectedStudyId),
+                });
               } else {
-                setConfirmAction(() => () => handleClearEvents());
-                setConfirmMessage("Delete all tracking events across all studies?");
+                setConfirmState({
+                  message: "Delete all tracking events across all studies?",
+                  action: () => handleClearEvents(),
+                });
               }
             }}
             disabled={deleting || allEvents.length === 0}
@@ -236,36 +240,10 @@ export default function DashboardPage() {
 
       {/* Stats cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Total Events
-          </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">{allEvents.length}</p>
-        </div>
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Sessions
-          </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">
-            {uniqueSessions}
-          </p>
-        </div>
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Participants
-          </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">
-            {uniqueParticipants}
-          </p>
-        </div>
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Event Types
-          </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">
-            {sortedTypes.length}
-          </p>
-        </div>
+        <StatCard label="Total Events" value={allEvents.length} />
+        <StatCard label="Sessions" value={uniqueSessions} />
+        <StatCard label="Participants" value={uniqueParticipants} />
+        <StatCard label="Event Types" value={sortedTypes.length} />
       </div>
 
       {/* Variant Comparison */}
@@ -429,58 +407,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        title="Confirm"
+        message={confirmState?.message ?? ""}
+      />
     </div>
   );
 }

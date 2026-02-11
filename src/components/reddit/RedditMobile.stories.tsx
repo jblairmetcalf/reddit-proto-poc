@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import RedditMobile from "./RedditMobile";
 
 const meta = {
-  title: "Prototype/RedditMobile",
+  title: "Reddit/RedditMobile",
   component: RedditMobile,
   parameters: {
     layout: "centered",

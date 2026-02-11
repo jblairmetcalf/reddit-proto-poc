@@ -11,6 +11,7 @@ import {
   doc,
   serverTimestamp,
 } from "firebase/firestore";
+import { Dialog, ConfirmDialog, EmptyState } from "@/components/infrastructure";
 
 interface SyntheticUser {
   id: string;
@@ -116,8 +117,7 @@ export default function SyntheticUsersPage() {
   const [description, setDescription] = useState("");
   const [traits, setTraits] = useState("");
   const [browsingHabits, setBrowsingHabits] = useState("");
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "syntheticUsers"), (snap) => {
@@ -225,145 +225,108 @@ export default function SyntheticUsersPage() {
       </header>
 
       {/* Create / Edit dialog */}
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              resetForm();
-              setShowCreate(false);
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-lg rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                resetForm();
-                setShowCreate(false);
-              }
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleCreate();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                {editingId ? "Edit Synthetic User" : "Create Synthetic User"}
-              </h2>
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowCreate(false);
-                }}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
-              >
-                &times;
-              </button>
+      <Dialog
+        open={showCreate}
+        onClose={() => { resetForm(); setShowCreate(false); }}
+        title={editingId ? "Edit Synthetic User" : "Create Synthetic User"}
+        maxWidth="lg"
+        onSubmit={handleCreate}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={() => { resetForm(); setShowCreate(false); }}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!name.trim() || creating}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating
+                ? "Saving..."
+                : editingId
+                  ? "Update Synthetic User"
+                  : "Create Synthetic User"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-secondary">
+                Name
+              </label>
+              <input
+                autoFocus
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Alex the Lurker"
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+              />
             </div>
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Name
-                  </label>
-                  <input
-                    autoFocus
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., Alex the Lurker"
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Persona
-                  </label>
-                  <select
-                    value={persona}
-                    onChange={(e) => applyPreset(e.target.value)}
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    {PERSONA_PRESETS.map((p) => (
-                      <option key={p.persona} value={p.persona}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe this synthetic user's background and motivations..."
-                  rows={2}
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Traits (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={traits}
-                  onChange={(e) => setTraits(e.target.value)}
-                  placeholder="e.g., curious, low engagement, short sessions"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Browsing Habits
-                </label>
-                <textarea
-                  value={browsingHabits}
-                  onChange={(e) => setBrowsingHabits(e.target.value)}
-                  placeholder="Describe how this user typically browses Reddit..."
-                  rows={2}
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={() => {
-                    resetForm();
-                    setShowCreate(false);
-                  }}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={!name.trim() || creating}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating
-                    ? "Saving..."
-                    : editingId
-                      ? "Update Synthetic User"
-                      : "Create Synthetic User"}
-                </button>
-              </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-secondary">
+                Persona
+              </label>
+              <select
+                value={persona}
+                onChange={(e) => applyPreset(e.target.value)}
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
+              >
+                {PERSONA_PRESETS.map((p) => (
+                  <option key={p.persona} value={p.persona}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe this synthetic user's background and motivations..."
+              rows={2}
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Traits (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={traits}
+              onChange={(e) => setTraits(e.target.value)}
+              placeholder="e.g., curious, low engagement, short sessions"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Browsing Habits
+            </label>
+            <textarea
+              value={browsingHabits}
+              onChange={(e) => setBrowsingHabits(e.target.value)}
+              placeholder="Describe how this user typically browses Reddit..."
+              rows={2}
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
+            />
+          </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Users list */}
       {users.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge p-12 text-center">
-          <p className="text-sm text-muted">
-            No synthetic users yet. Create one to get started.
-          </p>
-        </div>
+        <EmptyState message="No synthetic users yet. Create one to get started." />
       ) : (
         <div className="space-y-3">
           {users.map((user) => (
@@ -423,8 +386,10 @@ export default function SyntheticUsersPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setConfirmAction(() => () => handleDelete(user.id));
-                      setConfirmMessage(`Delete "${user.name}"?`);
+                      setConfirmState({
+                        message: `Delete "${user.name}"?`,
+                        action: () => handleDelete(user.id),
+                      });
                     }}
                     className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
@@ -438,58 +403,12 @@ export default function SyntheticUsersPage() {
       )}
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        message={confirmState?.message ?? ""}
+      />
     </div>
   );
 }

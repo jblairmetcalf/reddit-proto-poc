@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Toast from "@/components/Toast";
+import Toast from "@/components/infrastructure/Toast";
+import { Dialog, ConfirmDialog, StatusBadge, StatCard, STUDY_STATUS_STYLES, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -79,20 +80,6 @@ interface Prototype {
   fileName: string;
   url: string;
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-subtle text-secondary",
-  active: "bg-green-500/20 text-green-400",
-  completed: "bg-blue-500/20 text-blue-400",
-};
-
-const PARTICIPANT_STATUS_STYLES: Record<string, string> = {
-  invited: "bg-amber-500/20 text-amber-400",
-  viewed: "bg-cyan-500/20 text-cyan-400",
-  active: "bg-green-500/20 text-green-400",
-  completed: "bg-blue-500/20 text-blue-400",
-  timed_out: "bg-red-500/20 text-red-400",
-};
 
 const STATUS_TRANSITIONS: Record<string, string> = {
   draft: "active",
@@ -401,8 +388,7 @@ export default function StudyDetailPage() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState<string | null>(null);
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
 
   const handleCopyLink = async (p: Participant) => {
     const isLink = study?.prototypeType === "link" && study?.prototyperId && study?.prototypeId;
@@ -551,11 +537,7 @@ export default function StudyDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">{study.name}</h1>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status]}`}
-              >
-                {study.status}
-              </span>
+              <StatusBadge status={study.status} styleMap={STUDY_STATUS_STYLES} />
             </div>
             {study.createdAt && (
               <p className="mt-0.5 text-xs text-faint">
@@ -586,133 +568,109 @@ export default function StudyDetailPage() {
       </header>
 
       {/* Edit Study dialog */}
-      {showEditStudy && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) confirmCloseEditStudy();
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") confirmCloseEditStudy();
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleSaveStudy();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Edit Study</h2>
-              <button
-                onClick={confirmCloseEditStudy}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
+      <Dialog
+        open={showEditStudy}
+        onClose={confirmCloseEditStudy}
+        title="Edit Study"
+        onSubmit={handleSaveStudy}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={confirmCloseEditStudy}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveStudy}
+              disabled={!editName.trim() || savingStudy || !studyEditHasChanges}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingStudy ? "Saving..." : "Update Study"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Study Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="e.g., Feed Sorting Experiment"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Description
+            </label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="What are you testing?"
+              rows={3}
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-secondary">
+                Prototype
+              </label>
+              <select
+                value={editProtoKey}
+                onChange={(e) => setEditProtoKey(e.target.value)}
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
               >
-                &times;
-              </button>
+                <option value="">Select a prototype...</option>
+                {prototypers.map((p) => {
+                  const protos = prototypes.filter(
+                    (proto) => proto.prototyperId === p.id
+                  );
+                  if (protos.length === 0) return null;
+                  return (
+                    <optgroup key={p.id} label={p.name}>
+                      {protos.map((proto) => (
+                        <option
+                          key={proto.id}
+                          value={`${proto.prototyperId}:${proto.id}`}
+                        >
+                          {proto.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
             </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Study Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g., Feed Sorting Experiment"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Description
-                </label>
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="What are you testing?"
-                  rows={3}
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Prototype
-                  </label>
-                  <select
-                    value={editProtoKey}
-                    onChange={(e) => setEditProtoKey(e.target.value)}
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="">Select a prototype...</option>
-                    {prototypers.map((p) => {
-                      const protos = prototypes.filter(
-                        (proto) => proto.prototyperId === p.id
-                      );
-                      if (protos.length === 0) return null;
-                      return (
-                        <optgroup key={p.id} label={p.name}>
-                          {protos.map((proto) => (
-                            <option
-                              key={proto.id}
-                              value={`${proto.prototyperId}:${proto.id}`}
-                            >
-                              {proto.title}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Status
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) =>
-                      setEditStatus(e.target.value as "draft" | "active" | "completed")
-                    }
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={confirmCloseEditStudy}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveStudy}
-                  disabled={!editName.trim() || savingStudy || !studyEditHasChanges}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingStudy ? "Saving..." : "Update Study"}
-                </button>
-              </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-secondary">
+                Status
+              </label>
+              <select
+                value={editStatus}
+                onChange={(e) =>
+                  setEditStatus(e.target.value as "draft" | "active" | "completed")
+                }
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">Prototype</p>
-          <p className="mt-1 text-lg font-bold text-foreground">
-            {study.prototypeTitle || "None selected"}
-          </p>
+        <StatCard label="Prototype" value={study.prototypeTitle || "None selected"}>
           {study.prototypeType === "link" && study.prototyperId && study.prototypeId ? (
             <Link
               href={`/prototype/link/${study.prototyperId}/${study.prototypeId}`}
@@ -738,21 +696,9 @@ export default function StudyDetailPage() {
               Preview
             </Link>
           ) : null}
-        </div>
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Participants
-          </p>
-          <p className="mt-1 text-lg font-bold text-foreground">
-            {participants.length}
-          </p>
-        </div>
-        <div className="rounded-xl border border-edge bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted">
-            Events Tracked
-          </p>
-          <p className="mt-1 text-lg font-bold text-foreground">{eventCount}</p>
-        </div>
+        </StatCard>
+        <StatCard label="Participants" value={participants.length} />
+        <StatCard label="Events Tracked" value={eventCount} />
       </div>
 
       {/* Participants */}
@@ -774,148 +720,127 @@ export default function StudyDetailPage() {
         </div>
 
         {/* Add Participant dialog */}
-        {showAddParticipant && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setShowAddParticipant(false);
-            }}
-          >
-            <div
-              className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setShowAddParticipant(false);
-                if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                  e.preventDefault();
-                  if (addMode === "existing") handleAddExistingParticipant();
-                  else handleCreateParticipant();
-                }
-              }}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Add Participant
-                </h2>
+        <Dialog
+          open={showAddParticipant}
+          onClose={() => setShowAddParticipant(false)}
+          title="Add Participant"
+          onSubmit={addMode === "existing" ? handleAddExistingParticipant : handleCreateParticipant}
+          footer={
+            addMode === "existing" ? (
+              <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   onClick={() => setShowAddParticipant(false)}
-                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
+                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
                 >
-                  &times;
-                </button>
-              </div>
-
-              {/* Mode tabs */}
-              <div className="mb-4 flex rounded-lg border border-edge-strong bg-input p-0.5">
-                <button
-                  onClick={() => setAddMode("existing")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    addMode === "existing"
-                      ? "bg-subtle text-foreground"
-                      : "text-muted hover:text-foreground"
-                  }`}
-                >
-                  Existing Participant
+                  Cancel
                 </button>
                 <button
-                  onClick={() => setAddMode("new")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    addMode === "new"
-                      ? "bg-subtle text-foreground"
-                      : "text-muted hover:text-foreground"
-                  }`}
+                  onClick={handleAddExistingParticipant}
+                  disabled={!selectedParticipantId || savingParticipant}
+                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create New
+                  {savingParticipant ? "Adding..." : "Add to Study"}
                 </button>
               </div>
-
-              {addMode === "existing" ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-secondary">
-                      Select Participant
-                    </label>
-                    <select
-                      value={selectedParticipantId}
-                      onChange={(e) => setSelectedParticipantId(e.target.value)}
-                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                    >
-                      <option value="">Choose a participant...</option>
-                      {unassignedParticipants.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                          {p.email ? ` (${p.email})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {unassignedParticipants.length === 0 && (
-                      <p className="mt-1 text-xs text-faint">
-                        All participants are already assigned. Create a new one
-                        instead.
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-end gap-3 pt-1">
-                    <button
-                      onClick={() => setShowAddParticipant(false)}
-                      className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddExistingParticipant}
-                      disabled={!selectedParticipantId || savingParticipant}
-                      className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {savingParticipant ? "Adding..." : "Add to Study"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-secondary">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newParticipantName}
-                      onChange={(e) => setNewParticipantName(e.target.value)}
-                      placeholder="e.g., Jane Doe"
-                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-secondary">
-                      Email (optional)
-                    </label>
-                    <input
-                      type="email"
-                      value={newParticipantEmail}
-                      onChange={(e) => setNewParticipantEmail(e.target.value)}
-                      placeholder="participant@example.com"
-                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex items-center justify-end gap-3 pt-1">
-                    <button
-                      onClick={() => setShowAddParticipant(false)}
-                      className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCreateParticipant}
-                      disabled={!newParticipantName.trim() || savingParticipant}
-                      className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {savingParticipant ? "Creating..." : "Create & Add"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  onClick={() => setShowAddParticipant(false)}
+                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateParticipant}
+                  disabled={!newParticipantName.trim() || savingParticipant}
+                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingParticipant ? "Creating..." : "Create & Add"}
+                </button>
+              </div>
+            )
+          }
+        >
+          {/* Mode tabs */}
+          <div className="mb-4 flex rounded-lg border border-edge-strong bg-input p-0.5">
+            <button
+              onClick={() => setAddMode("existing")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                addMode === "existing"
+                  ? "bg-subtle text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Existing Participant
+            </button>
+            <button
+              onClick={() => setAddMode("new")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                addMode === "new"
+                  ? "bg-subtle text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Create New
+            </button>
           </div>
-        )}
+
+          {addMode === "existing" ? (
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-secondary">
+                  Select Participant
+                </label>
+                <select
+                  value={selectedParticipantId}
+                  onChange={(e) => setSelectedParticipantId(e.target.value)}
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
+                >
+                  <option value="">Choose a participant...</option>
+                  {unassignedParticipants.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.email ? ` (${p.email})` : ""}
+                    </option>
+                  ))}
+                </select>
+                {unassignedParticipants.length === 0 && (
+                  <p className="mt-1 text-xs text-faint">
+                    All participants are already assigned. Create a new one
+                    instead.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-secondary">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newParticipantName}
+                  onChange={(e) => setNewParticipantName(e.target.value)}
+                  placeholder="e.g., Jane Doe"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-secondary">
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={newParticipantEmail}
+                  onChange={(e) => setNewParticipantEmail(e.target.value)}
+                  placeholder="participant@example.com"
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+        </Dialog>
 
         {participants.length === 0 ? (
           <p className="text-sm text-muted">
@@ -936,14 +861,7 @@ export default function StudyDetailPage() {
                         {p.persona}
                       </span>
                     )}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                        PARTICIPANT_STATUS_STYLES[p.studyStatus?.[id] || "invited"] ||
-                        PARTICIPANT_STATUS_STYLES.invited
-                      }`}
-                    >
-                      {p.studyStatus?.[id] || "invited"}
-                    </span>
+                    <StatusBadge status={p.studyStatus?.[id] || "invited"} styleMap={PARTICIPANT_STATUS_STYLES} />
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                     {p.userType && <span>{p.userType}</span>}
@@ -965,8 +883,10 @@ export default function StudyDetailPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setConfirmAction(() => () => handleRemoveParticipant(p.id));
-                      setConfirmMessage(`Remove "${p.name}" from this study?`);
+                      setConfirmState({
+                        message: `Remove "${p.name}" from this study?`,
+                        action: () => handleRemoveParticipant(p.id),
+                      });
                     }}
                     className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
@@ -1200,58 +1120,14 @@ export default function StudyDetailPage() {
       )}
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        title="Confirm"
+        message={confirmState?.message ?? ""}
+        confirmLabel="Confirm"
+      />
     </div>
   );
 }

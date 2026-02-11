@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import SurveyOverlay from "@/components/prototype/SurveyOverlay";
+import SurveyOverlay from "@/components/reddit/SurveyOverlay";
 import { getSessionId } from "@/lib/tracking";
 import { useTracking } from "@/hooks/useTracking";
 

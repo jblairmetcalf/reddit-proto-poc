@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Reddit_Sans, Reddit_Mono } from "next/font/google";
-import AuthGate from "@/components/AuthGate";
+import AuthGate from "@/components/infrastructure/AuthGate";
 import "./globals.css";
 
 const redditSans = Reddit_Sans({

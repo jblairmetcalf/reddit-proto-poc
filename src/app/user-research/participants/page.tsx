@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import Toast from "@/components/Toast";
+import Toast from "@/components/infrastructure/Toast";
+import { Dialog, ConfirmDialog, StatusBadge, EmptyState, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -33,14 +34,6 @@ interface Study {
   prototypeVariant?: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  invited: "bg-amber-500/20 text-amber-400",
-  viewed: "bg-cyan-500/20 text-cyan-400",
-  active: "bg-green-500/20 text-green-400",
-  completed: "bg-blue-500/20 text-blue-400",
-  timed_out: "bg-red-500/20 text-red-400",
-};
-
 export default function ParticipantsPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
@@ -53,8 +46,7 @@ export default function ParticipantsPage() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [saving, setSaving] = useState(false);
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, "participants"), (snap) => {
@@ -197,178 +189,114 @@ export default function ParticipantsPage() {
       </header>
 
       {/* Invite dialog */}
-      {showInvite && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowInvite(false);
-              setName("");
-              setEmail("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setShowInvite(false);
-                setName("");
-                setEmail("");
-              }
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleAdd();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                Add Participant
-              </h2>
-              <button
-                onClick={() => {
-                  setShowInvite(false);
-                  setName("");
-                  setEmail("");
-                }}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Blair Metcalf"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Email (optional)
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="participant@example.com"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={() => {
-                    setShowInvite(false);
-                    setName("");
-                    setEmail("");
-                  }}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAdd}
-                  disabled={!name.trim() || creating}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating ? "Adding..." : "Add Participant"}
-                </button>
-              </div>
-            </div>
+      <Dialog
+        open={showInvite}
+        onClose={() => { setShowInvite(false); setName(""); setEmail(""); }}
+        title="Add Participant"
+        onSubmit={handleAdd}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={() => { setShowInvite(false); setName(""); setEmail(""); }}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={!name.trim() || creating}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? "Adding..." : "Add Participant"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Blair Metcalf"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="participant@example.com"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Edit Participant dialog */}
-      {editingId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) confirmCloseEdit();
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") confirmCloseEdit();
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleSaveEdit();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                Edit Participant
-              </h2>
-              <button
-                onClick={confirmCloseEdit}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g., Blair Metcalf"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Email (optional)
-                </label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  placeholder="participant@example.com"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={confirmCloseEdit}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={!editName.trim() || saving || !editHasChanges}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? "Saving..." : "Update Participant"}
-                </button>
-              </div>
-            </div>
+      <Dialog
+        open={!!editingId}
+        onClose={confirmCloseEdit}
+        title="Edit Participant"
+        onSubmit={handleSaveEdit}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={confirmCloseEdit}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={!editName.trim() || saving || !editHasChanges}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? "Saving..." : "Update Participant"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="e.g., Blair Metcalf"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              placeholder="participant@example.com"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Participants list */}
       {participants.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge p-12 text-center">
-          <p className="text-sm text-muted">
-            No participants yet. Add one to get started.
-          </p>
-        </div>
+        <EmptyState message="No participants yet. Add one to get started." />
       ) : (
         <div className="space-y-3">
           {participants.map((p) => (
@@ -396,7 +324,7 @@ export default function ParticipantsPage() {
                       {Object.entries(p.studyStatus).map(([sid, status]) => (
                         <div key={sid} className="flex items-center gap-1.5 mt-0.5 text-xs">
                           <Link href={`/user-research/studies/${sid}`} className="text-secondary hover:text-orange-400 transition-colors">{getStudyName(sid)}</Link>
-                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${STATUS_STYLES[status] || STATUS_STYLES.invited}`}>{status}</span>
+                          <StatusBadge status={status} styleMap={PARTICIPANT_STATUS_STYLES} size="sm" />
                         </div>
                       ))}
                     </div>
@@ -411,8 +339,7 @@ export default function ParticipantsPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setConfirmAction(() => () => handleDelete(p.id));
-                      setConfirmMessage(`Delete "${p.name}"?`);
+                      setConfirmState({ message: `Delete "${p.name}"?`, action: () => handleDelete(p.id) });
                     }}
                     className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
@@ -426,58 +353,12 @@ export default function ParticipantsPage() {
       )}
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        message={confirmState?.message ?? ""}
+      />
       {toast && (
         <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
       )}

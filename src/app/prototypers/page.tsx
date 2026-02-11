@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { VARIANT_PRESETS } from "@/lib/variants";
+import { ConfirmDialog, StatusBadge, EmptyState, ROLE_STYLES } from "@/components/infrastructure";
 
 interface Prototype {
   id: string;
@@ -36,12 +37,6 @@ interface Prototyper {
   createdAt?: { seconds: number };
 }
 
-const ROLE_STYLES: Record<string, string> = {
-  "Lead Prototyper": "bg-orange-500/20 text-orange-400",
-  "UX Engineer": "bg-violet-500/20 text-violet-400",
-  "Interaction Designer": "bg-sky-500/20 text-sky-400",
-};
-
 export default function PrototypersPage() {
   const [prototypers, setPrototypers] = useState<Prototyper[]>([]);
   const [protoMap, setProtoMap] = useState<Record<string, Prototype[]>>({});
@@ -51,8 +46,7 @@ export default function PrototypersPage() {
   const [email, setEmail] = useState("");
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "prototypers"), (snap) => {
@@ -345,13 +339,11 @@ export default function PrototypersPage() {
 
       {/* Prototypers grid */}
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge p-12 text-center">
-          <p className="text-sm text-muted">
-            {q
-              ? `No prototypers matching "${search.trim()}".`
-              : "No prototypers yet. Add one to get started."}
-          </p>
-        </div>
+        <EmptyState
+          message={q
+            ? `No prototypers matching "${search.trim()}".`
+            : "No prototypers yet. Add one to get started."}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
@@ -367,10 +359,10 @@ export default function PrototypersPage() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setConfirmAction(() => () => handleDelete(p.id));
-                    setConfirmMessage(
-                      `Delete "${p.name}" and all ${protos.length} prototype${protos.length !== 1 ? "s" : ""}? This cannot be undone.`
-                    );
+                    setConfirmState({
+                      message: `Delete "${p.name}" and all ${protos.length} prototype${protos.length !== 1 ? "s" : ""}? This cannot be undone.`,
+                      action: () => handleDelete(p.id),
+                    });
                   }}
                   className="absolute top-3 right-3 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                 >
@@ -381,11 +373,7 @@ export default function PrototypersPage() {
                     {p.name}
                   </h3>
                   {p.role && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ROLE_STYLES[p.role] || "bg-subtle text-secondary"}`}
-                    >
-                      {p.role}
-                    </span>
+                    <StatusBadge status={p.role} styleMap={ROLE_STYLES} />
                   )}
                 </div>
                 {p.email && (
@@ -426,58 +414,12 @@ export default function PrototypersPage() {
       )}
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        message={confirmState?.message ?? ""}
+      />
     </div>
   );
 }

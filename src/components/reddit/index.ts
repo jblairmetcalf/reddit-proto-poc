@@ -15,3 +15,6 @@ export type { BottomNavProps, NavTab } from "./BottomNav";
 
 export { ProfileView } from "./ProfileView";
 export type { ProfileViewProps } from "./ProfileView";
+
+export { default as RedditMobile } from "./RedditMobile";
+export { default as SurveyOverlay } from "./SurveyOverlay";

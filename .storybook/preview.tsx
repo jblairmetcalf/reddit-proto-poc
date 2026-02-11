@@ -1,6 +1,6 @@
 import React from "react";
 import type { Preview } from "@storybook/nextjs-vite";
-import "../src/styles/reddit-tokens.css";
+import "../src/app/globals.css";
 
 function ThemeWrapper({
   theme,

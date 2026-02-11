@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { VARIANT_PRESETS } from "@/lib/variants";
+import { StatusBadge, EmptyState, PROTOTYPE_STATUS_STYLES, VARIANT_BADGE_COLORS, ROLE_STYLES } from "@/components/infrastructure";
 
 interface Prototyper {
   id: string;
@@ -28,25 +29,6 @@ interface Prototype {
   modifiedAt?: { seconds: number };
   createdAt?: { seconds: number };
 }
-
-const VARIANT_BADGE_COLORS: Record<string, string> = {
-  default: "bg-subtle text-secondary",
-  "variant-a": "bg-blue-500/20 text-blue-400",
-  "variant-b": "bg-green-500/20 text-green-400",
-  "variant-c": "bg-purple-500/20 text-purple-400",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-subtle text-secondary",
-  "in-progress": "bg-amber-500/20 text-amber-400",
-  complete: "bg-green-500/20 text-green-400",
-};
-
-const ROLE_STYLES: Record<string, string> = {
-  "Lead Prototyper": "bg-orange-500/20 text-orange-400",
-  "UX Engineer": "bg-violet-500/20 text-violet-400",
-  "Interaction Designer": "bg-sky-500/20 text-sky-400",
-};
 
 export default function PrototypesPage() {
   const router = useRouter();
@@ -195,13 +177,11 @@ export default function PrototypesPage() {
           <span className="ml-2 text-faint">({filtered.length})</span>
         </h2>
         {filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-edge p-8 text-center">
-            <p className="text-sm text-muted">
-              {query
-                ? "No prototypes match your search."
-                : "No prototypes yet. Add prototypes from the Prototypers page."}
-            </p>
-          </div>
+          <EmptyState
+            message={query
+              ? "No prototypes match your search."
+              : "No prototypes yet. Add prototypes from the Prototypers page."}
+          />
         ) : (
             <div className="space-y-3">
               {filtered.map((proto) => (
@@ -214,11 +194,7 @@ export default function PrototypesPage() {
                       <h3 className="text-sm font-semibold text-foreground">
                         {proto.title}
                       </h3>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[proto.status] || STATUS_STYLES.draft}`}
-                      >
-                        {proto.status}
-                      </span>
+                      <StatusBadge status={proto.status} styleMap={PROTOTYPE_STATUS_STYLES} />
                       {proto.variant && proto.variant !== "default" && (
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${VARIANT_BADGE_COLORS[proto.variant] || VARIANT_BADGE_COLORS.default}`}

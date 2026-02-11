@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import RedditMobile from "@/components/prototype/RedditMobile";
-import SurveyOverlay from "@/components/prototype/SurveyOverlay";
+import RedditMobile from "@/components/reddit/RedditMobile";
+import SurveyOverlay from "@/components/reddit/SurveyOverlay";
 import { useTracking } from "@/hooks/useTracking";
 import { getSessionId } from "@/lib/tracking";
 import { db } from "@/lib/firebase";

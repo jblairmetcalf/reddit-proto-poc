@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Toast from "@/components/Toast";
+import Toast from "@/components/infrastructure/Toast";
+import { Dialog, ConfirmDialog, StatusBadge, EmptyState, STUDY_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -45,12 +46,6 @@ interface Prototype {
   url: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-subtle text-secondary",
-  active: "bg-green-500/20 text-green-400",
-  completed: "bg-blue-500/20 text-blue-400",
-};
-
 export default function StudiesPage() {
   const [studies, setStudies] = useState<Study[]>([]);
   const [prototypes, setPrototypes] = useState<Prototype[]>([]);
@@ -61,8 +56,7 @@ export default function StudiesPage() {
   const [selectedProtoKey, setSelectedProtoKey] = useState("");
   const [status, setStatus] = useState<"draft" | "active" | "completed">("draft");
   const [saving, setSaving] = useState(false);
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
 
   // Listen to studies
   useEffect(() => {
@@ -270,146 +264,120 @@ export default function StudiesPage() {
       </header>
 
       {/* Create / Edit dialog */}
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) confirmCloseForm();
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") confirmCloseForm();
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleSave();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                {editingId ? "Edit Study" : "Create Study"}
-              </h2>
-              <button
-                onClick={confirmCloseForm}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
+      <Dialog
+        open={showForm}
+        onClose={confirmCloseForm}
+        title={editingId ? "Edit Study" : "Create Study"}
+        onSubmit={handleSave}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={confirmCloseForm}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!name.trim() || saving || (editingId != null && !editHasChanges)}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving
+                ? "Saving..."
+                : editingId
+                  ? "Update Study"
+                  : "Create Study"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Study Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Feed Sorting Experiment"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What are you testing?"
+              rows={3}
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-secondary">
+                Prototype
+              </label>
+              <select
+                value={selectedProtoKey}
+                onChange={(e) => setSelectedProtoKey(e.target.value)}
+                className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
               >
-                &times;
-              </button>
+                <option value="">Select a prototype...</option>
+                {prototypers.map((p) => {
+                  const protos = prototypes.filter(
+                    (proto) => proto.prototyperId === p.id
+                  );
+                  if (protos.length === 0) return null;
+                  return (
+                    <optgroup key={p.id} label={p.name}>
+                      {protos.map((proto) => (
+                        <option
+                          key={proto.id}
+                          value={`${proto.prototyperId}:${proto.id}`}
+                        >
+                          {proto.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+              {prototypes.length === 0 && (
+                <p className="mt-1 text-xs text-faint">
+                  Add prototypes from the Prototypers page first.
+                </p>
+              )}
             </div>
-            <div className="space-y-3">
+            {editingId && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-secondary">
-                  Study Name
+                  Status
                 </label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Feed Sorting Experiment"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What are you testing?"
-                  rows={3}
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none resize-none"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary">
-                    Prototype
-                  </label>
-                  <select
-                    value={selectedProtoKey}
-                    onChange={(e) => setSelectedProtoKey(e.target.value)}
-                    className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="">Select a prototype...</option>
-                    {prototypers.map((p) => {
-                      const protos = prototypes.filter(
-                        (proto) => proto.prototyperId === p.id
-                      );
-                      if (protos.length === 0) return null;
-                      return (
-                        <optgroup key={p.id} label={p.name}>
-                          {protos.map((proto) => (
-                            <option
-                              key={proto.id}
-                              value={`${proto.prototyperId}:${proto.id}`}
-                            >
-                              {proto.title}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    })}
-                  </select>
-                  {prototypes.length === 0 && (
-                    <p className="mt-1 text-xs text-faint">
-                      Add prototypes from the Prototypers page first.
-                    </p>
-                  )}
-                </div>
-                {editingId && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-secondary">
-                      Status
-                    </label>
-                    <select
-                      value={status}
-                      onChange={(e) =>
-                        setStatus(e.target.value as "draft" | "active" | "completed")
-                      }
-                      className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="active">Active</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={confirmCloseForm}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+                <select
+                  value={status}
+                  onChange={(e) =>
+                    setStatus(e.target.value as "draft" | "active" | "completed")
+                  }
+                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={!name.trim() || saving || (editingId != null && !editHasChanges)}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingId
-                      ? "Update Study"
-                      : "Create Study"}
-                </button>
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
               </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Studies list */}
       {studies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge p-12 text-center">
-          <p className="text-sm text-muted">
-            No studies yet. Create one to get started.
-          </p>
-        </div>
+        <EmptyState message="No studies yet. Create one to get started." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {studies.map((study) => (
@@ -426,18 +394,16 @@ export default function StudiesPage() {
                   <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
                     {study.name}
                   </h3>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_STYLES[study.status] || STATUS_STYLES.draft}`}
-                  >
-                    {study.status}
-                  </span>
+                  <StatusBadge status={study.status} styleMap={STUDY_STATUS_STYLES} />
                 </div>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setConfirmAction(() => () => handleDelete(study.id));
-                    setConfirmMessage(`Delete "${study.name}" and all its events, survey responses, and outcomes? Participants will be unassigned but kept in the platform.`);
+                    setConfirmState({
+                      message: `Delete "${study.name}" and all its events, survey responses, and outcomes? Participants will be unassigned but kept in the platform.`,
+                      action: () => handleDelete(study.id),
+                    });
                   }}
                   disabled={deleting === study.id}
                   className="relative z-10 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
@@ -459,58 +425,12 @@ export default function StudiesPage() {
       )}
 
       {/* Confirm dialog */}
-      {confirmAction && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setConfirmAction(null);
-              setConfirmMessage("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            tabIndex={-1}
-            ref={(el) => el?.focus()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-              if (e.key === "Enter") {
-                confirmAction();
-                setConfirmAction(null);
-                setConfirmMessage("");
-              }
-            }}
-          >
-            <h2 className="text-sm font-semibold text-foreground">Confirm Delete</h2>
-            <p className="mt-2 text-sm text-secondary">{confirmMessage}</p>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmAction();
-                  setConfirmAction(null);
-                  setConfirmMessage("");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        message={confirmState?.message ?? ""}
+      />
       {toast && (
         <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
       )}
