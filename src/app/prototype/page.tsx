@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Loader from "@/components/infrastructure/Loader";
 import RedditMobile from "@/components/reddit/RedditMobile";
 import SurveyOverlay from "@/components/reddit/SurveyOverlay";
 import { useTracking } from "@/hooks/useTracking";
@@ -367,9 +368,7 @@ function PrototypeContent() {
         <style>{prototypeStyles}</style>
         <div className={isMobile ? "prototype-page--fullbleed" : "prototype-page--framed"}>
           <div className={isMobile ? "prototype-content" : "prototype-frame"} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ color: "var(--reddit-orange, #FF4500)", fontSize: 18, fontWeight: 600 }}>
-              Loading...
-            </div>
+            <Loader size={200} />
           </div>
         </div>
       </>
@@ -415,8 +414,8 @@ export default function PrototypePage() {
   return (
     <Suspense
       fallback={
-        <div className="prototype-page" style={{ color: "var(--reddit-orange, #FF4500)", fontSize: 18 }}>
-          Loading...
+        <div className="prototype-page" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Loader size={200} />
         </div>
       }
     >

@@ -299,6 +299,10 @@ export default function PrototypersPage() {
       </div>
 
       {/* Prototypers grid */}
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted">
+        {q ? "Search Results" : "All Prototypers"}
+        <span className="ml-2 text-faint">({filtered.length})</span>
+      </h2>
       {filtered.length === 0 ? (
         <EmptyState
           message={q

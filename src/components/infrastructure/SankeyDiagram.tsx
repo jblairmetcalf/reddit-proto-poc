@@ -6,13 +6,17 @@ interface SankeyEvent {
   type: string;
   sessionId: string;
   timestamp: number;
+  data?: Record<string, unknown>;
 }
 
 const NODE_COLORS: Record<string, string> = {
   session_start: "#22c55e",
   session_end: "#ef4444",
   page_view: "#3b82f6",
-  tab_switch: "#a855f7",
+  tab_home: "#a855f7",
+  tab_communities: "#c084fc",
+  tab_notifications: "#d8b4fe",
+  tab_profile: "#7c3aed",
   post_click: "#f97316",
   vote: "#f59e0b",
   comment_vote: "#eab308",
@@ -51,6 +55,10 @@ interface LinkLayout {
   color: string;
 }
 
+function toTitleCase(id: string): string {
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function SankeyDiagram({ events }: { events: SankeyEvent[] }) {
   const layout = useMemo(() => {
     // Group by session
@@ -63,12 +71,21 @@ export default function SankeyDiagram({ events }: { events: SankeyEvent[] }) {
       list.sort((a, b) => a.timestamp - b.timestamp);
     }
 
+    // Resolve event type — split tab_switch into per-tab nodes
+    const resolveType = (e: SankeyEvent): string => {
+      if (e.type === "tab_switch" && typeof e.data?.tab === "string") {
+        return `tab_${e.data.tab}`;
+      }
+      return e.type;
+    };
+
     // Build deduplicated sequences (remove consecutive duplicates)
     const sequences: string[][] = [];
     for (const list of sessionMap.values()) {
       const seq: string[] = [];
       for (const e of list) {
-        if (seq[seq.length - 1] !== e.type) seq.push(e.type);
+        const type = resolveType(e);
+        if (seq[seq.length - 1] !== type) seq.push(type);
       }
       if (seq.length > 1) sequences.push(seq);
     }
@@ -248,7 +265,7 @@ export default function SankeyDiagram({ events }: { events: SankeyEvent[] }) {
               strokeOpacity={0.35}
             >
               <title>
-                {link.source.replace(/_/g, " ")} → {link.target.replace(/_/g, " ")}: {link.value}
+                {toTitleCase(link.source)} → {toTitleCase(link.target)}: {link.value}
               </title>
             </path>
           );
@@ -267,14 +284,23 @@ export default function SankeyDiagram({ events }: { events: SankeyEvent[] }) {
                 fill={node.color}
                 rx={2}
               />
+              <rect
+                x={x + NODE_W + 4}
+                y={node.y + node.height / 2 - 7}
+                rx={7}
+                ry={7}
+                fill={node.color}
+                height={14}
+                width={toTitleCase(node.id).length * 4.8 + String(node.value).length * 5 + 22}
+              />
               <text
-                x={x + NODE_W + 5}
+                x={x + NODE_W + 10}
                 y={node.y + node.height / 2}
-                dominantBaseline="middle"
-                fill="currentColor"
-                className="text-[8px] text-muted"
+                dominantBaseline="central"
+                fill="#ffffff"
+                className="text-[8px] font-medium"
               >
-                {node.id.replace(/_/g, " ")} ({node.value})
+                {toTitleCase(node.id)} ({node.value})
               </text>
             </g>
           );

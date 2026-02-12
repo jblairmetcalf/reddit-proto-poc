@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import Loader from "@/components/infrastructure/Loader";
 import SurveyOverlay from "@/components/reddit/SurveyOverlay";
 import CommentPanel from "@/components/prototype/CommentPanel";
 import { getSessionId } from "@/lib/tracking";
@@ -106,7 +107,7 @@ function UploadedPreviewContent() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <p className="text-sm text-zinc-500">Loading...</p>
+        <Loader size={200} />
       </div>
     );
   }

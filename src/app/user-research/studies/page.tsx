@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Toast from "@/components/infrastructure/Toast";
 import { Dialog, ConfirmDialog, StatusBadge, EmptyState, STUDY_STATUS_STYLES } from "@/components/infrastructure";
@@ -110,6 +110,65 @@ export default function StudiesPage() {
 
     return () => unsubs.forEach((u) => u());
   }, [prototypers]);
+
+  // Listen to participants for status counts
+  interface ParticipantDoc {
+    id: string;
+    studyStatus?: Record<string, string>;
+  }
+  const [allParticipants, setAllParticipants] = useState<ParticipantDoc[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "participants"), (snap) => {
+      setAllParticipants(
+        snap.docs.map((d) => ({
+          id: d.id,
+          studyStatus: (d.data() as { studyStatus?: Record<string, string> }).studyStatus,
+        }))
+      );
+    });
+    return () => unsub();
+  }, []);
+
+  // Listen to presence for online indicators
+  interface PresenceDoc {
+    participantId: string;
+    studyId: string;
+    lastSeen?: { toMillis?: () => number };
+  }
+  const [presenceDocs, setPresenceDocs] = useState<PresenceDoc[]>([]);
+  useEffect(() => {
+    const STALE_MS = 90_000;
+    const unsub = onSnapshot(collection(db, "presence"), (snap) => {
+      const now = Date.now();
+      setPresenceDocs(
+        snap.docs
+          .map((d) => d.data() as PresenceDoc)
+          .filter((p) => {
+            const lastSeen = p.lastSeen?.toMillis?.();
+            return p.participantId && (!lastSeen || now - lastSeen < STALE_MS);
+          })
+      );
+    });
+    return () => unsub();
+  }, []);
+
+  // Derive per-study participant counts
+  const studyCounts = useMemo(() => {
+    const counts: Record<string, { online: number; invited: number; viewed: number; completed: number }> = {};
+    for (const study of studies) {
+      const sid = study.id;
+      let invited = 0, viewed = 0, completed = 0;
+      for (const p of allParticipants) {
+        const status = p.studyStatus?.[sid];
+        if (status === "invited") invited++;
+        else if (status === "viewed") viewed++;
+        else if (status === "completed") completed++;
+      }
+      const online = presenceDocs.filter((d) => d.studyId === sid).length;
+      counts[sid] = { online, invited, viewed, completed };
+    }
+    return counts;
+  }, [studies, allParticipants, presenceDocs]);
 
   function resetForm() {
     setName("");
@@ -413,11 +472,19 @@ export default function StudiesPage() {
                 className="absolute inset-0 rounded-xl"
               />
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold text-foreground group-hover:text-orange-400">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <h3 className="truncate text-lg font-semibold text-foreground group-hover:text-orange-400">
                     {study.name}
                   </h3>
-                  <StatusBadge status={study.status} styleMap={STUDY_STATUS_STYLES} />
+                  {studyCounts[study.id]?.online > 0 && (
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                      </span>
+                      <span className="text-xs text-green-400">{studyCounts[study.id].online}</span>
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={(e) => {
@@ -428,12 +495,28 @@ export default function StudiesPage() {
                       action: () => handleDelete(study.id),
                     });
                   }}
-                  className="relative z-10 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                  className="relative z-10 shrink-0 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                 >
                   Delete
                 </button>
               </div>
-              <p className="mt-1 text-xs text-muted">
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <StatusBadge status={study.status} styleMap={STUDY_STATUS_STYLES} />
+                {(() => {
+                  const c = studyCounts[study.id];
+                  if (!c) return null;
+                  const hasParticipants = c.invited + c.viewed + c.completed > 0;
+                  if (!hasParticipants) return null;
+                  return (
+                    <>
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">{c.invited} Invited</span>
+                      <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-medium text-cyan-400">{c.viewed} Viewed</span>
+                      <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">{c.completed} Completed</span>
+                    </>
+                  );
+                })()}
+              </div>
+              <p className="mt-1.5 text-xs text-muted">
                 {study.prototypeTitle || "No prototype selected"}
               </p>
               {study.createdAt && (

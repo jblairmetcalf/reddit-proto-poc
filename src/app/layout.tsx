@@ -45,6 +45,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preload" href="/loader.json" as="fetch" crossOrigin="anonymous" />
+      </head>
       <body
         className={`${redditSans.variable} ${redditMono.variable} antialiased`}
       >

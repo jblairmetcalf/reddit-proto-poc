@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import Toast from "@/components/infrastructure/Toast";
+import Loader from "@/components/infrastructure/Loader";
 import SankeyDiagram from "@/components/infrastructure/SankeyDiagram";
 import { Dialog, ConfirmDialog, StatusBadge, StatCard, STUDY_STATUS_STYLES, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
@@ -12,8 +13,10 @@ import {
   doc,
   updateDoc,
   addDoc,
+  setDoc,
   deleteDoc,
   deleteField,
+  getDocs,
   collection,
   query,
   where,
@@ -164,6 +167,7 @@ export default function StudyDetailPage() {
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
   const [summarizing, setSummarizing] = useState(false);
+  const [deletingEvents, setDeletingEvents] = useState(false);
 
   // Online presence
   const [onlineParticipants, setOnlineParticipants] = useState<Set<string>>(new Set());
@@ -550,6 +554,40 @@ export default function StudyDetailPage() {
     }
   };
 
+  const pendingClearRef = useRef<{ docs: { id: string; data: Record<string, unknown> }[]; undone: boolean } | null>(null);
+
+  const handleClearStudyEvents = () => {
+    const snapshot = studyEvents.map((e) => {
+      const { id: _id, ...data } = e;
+      return { id: _id, data: data as Record<string, unknown> };
+    });
+    pendingClearRef.current = { docs: snapshot, undone: false };
+    setStudyEvents([]);
+    setEventCount(0);
+    setToast({
+      message: `Cleared ${snapshot.length} event${snapshot.length !== 1 ? "s" : ""}`,
+      onUndo: () => {
+        if (pendingClearRef.current) pendingClearRef.current.undone = true;
+      },
+    });
+  };
+
+  const executePendingClear = async () => {
+    const pending = pendingClearRef.current;
+    pendingClearRef.current = null;
+    if (!pending || pending.undone) return;
+    setDeletingEvents(true);
+    try {
+      const q = query(collection(db, "events"), where("studyId", "==", id));
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    } catch (err) {
+      console.error("Failed to clear events:", err);
+    } finally {
+      setDeletingEvents(false);
+    }
+  };
+
   const handleSummarizeSurvey = async () => {
     if (surveyResponses.length === 0) return;
     setSummarizing(true);
@@ -596,8 +634,8 @@ export default function StudyDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <p className="text-muted">Loading study...</p>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader />
       </div>
     );
   }
@@ -995,14 +1033,25 @@ export default function StudyDetailPage() {
       {/* Live Dashboard */}
       <div className="mt-8 rounded-xl border border-edge bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-foreground">Live Dashboard</h2>
-            <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${studyEvents.length > 0 ? "bg-green-500/20 text-green-400" : "bg-subtle text-secondary"}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${studyEvents.length > 0 ? "bg-green-400 animate-pulse" : "bg-muted"}`} />
-              {studyEvents.length > 0 ? "Live" : "Waiting"}
-            </span>
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-foreground">Live Dashboard</h2>
+              <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${studyEvents.length > 0 ? "bg-green-500/20 text-green-400" : "bg-subtle text-secondary"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${studyEvents.length > 0 ? "bg-green-400 animate-pulse" : "bg-muted"}`} />
+                {studyEvents.length > 0 ? "Live" : "Waiting"}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-muted">{studyEvents.length} event{studyEvents.length !== 1 ? "s" : ""}</p>
           </div>
-          <span className="text-xs text-muted">{studyEvents.length} event{studyEvents.length !== 1 ? "s" : ""}</span>
+          {studyEvents.length > 0 && (
+            <button
+              onClick={handleClearStudyEvents}
+              disabled={deletingEvents}
+              className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deletingEvents ? "Clearing..." : "Clear Events"}
+            </button>
+          )}
         </div>
 
         {studyEvents.length === 0 ? (
@@ -1103,30 +1152,30 @@ export default function StudyDetailPage() {
       {/* Survey Responses */}
       <div className="mt-8 rounded-xl border border-edge bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Survey Responses</h2>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted">{surveyResponses.length} response{surveyResponses.length !== 1 ? "s" : ""}</span>
-            {surveyResponses.length > 0 && (
-              <button
-                onClick={handleSummarizeSurvey}
-                disabled={summarizing}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {summarizing ? "Summarizing..." : study?.aiSummary ? "Regenerate AI Summary" : "AI Summary"}
-              </button>
-            )}
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Survey Responses</h2>
+            <p className="mt-0.5 text-xs text-muted">{surveyResponses.length} response{surveyResponses.length !== 1 ? "s" : ""}</p>
           </div>
+          {surveyResponses.length > 0 && (
+            <button
+              onClick={handleSummarizeSurvey}
+              disabled={summarizing}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {summarizing ? "Summarizing..." : study?.aiSummary ? "Regenerate AI Summary" : "AI Summary"}
+            </button>
+          )}
         </div>
 
         {study.aiSummary && (
           <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2">
               <h3 className="text-xs font-semibold text-blue-400">AI Summary</h3>
               {study.aiSummaryAt && (
-                <span className="text-[10px] text-faint">
+                <p className="mt-0.5 text-[10px] text-faint">
                   {new Date(study.aiSummaryAt.seconds * 1000).toLocaleDateString()}{" "}
                   {new Date(study.aiSummaryAt.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
+                </p>
               )}
             </div>
             <div className="prose prose-invert max-w-none text-sm text-secondary [&_strong]:text-foreground [&_li]:text-secondary [&_p]:text-secondary [&_ul]:my-1 [&_li]:my-0.5 [&_h2]:text-base [&_h3]:text-sm">
@@ -1330,7 +1379,10 @@ export default function StudyDetailPage() {
         <Toast
           message={toast.message}
           onUndo={toast.onUndo}
-          onDismiss={() => setToast(null)}
+          onDismiss={() => {
+            setToast(null);
+            executePendingClear();
+          }}
         />
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Toast from "@/components/infrastructure/Toast";
+import Loader from "@/components/infrastructure/Loader";
 import { Dialog, ConfirmDialog, StatusBadge, PROTOTYPE_STATUS_STYLES, PROTOTYPE_TYPE_STYLES, UX_ROLES, ROLE_STYLES } from "@/components/infrastructure";
 import { db, storage } from "@/lib/firebase";
 import {
@@ -327,8 +328,8 @@ export default function PrototyperDetailPage() {
 
   if (!prototyper) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <p className="text-sm text-muted">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader />
       </div>
     );
   }
@@ -719,7 +720,7 @@ export default function PrototyperDetailPage() {
                 </button>
                 <button
                   onClick={() => openEdit(proto)}
-                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                  className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
                 >
                   Edit
                 </button>
@@ -727,7 +728,7 @@ export default function PrototyperDetailPage() {
                   onClick={() => {
                     setConfirmState({ message: `Delete "${proto.title}"?`, action: () => handleDelete(proto.id) });
                   }}
-                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                  className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                 >
                   Delete
                 </button>
