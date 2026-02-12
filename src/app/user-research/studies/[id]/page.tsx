@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import Toast from "@/components/infrastructure/Toast";
 import { Dialog, ConfirmDialog, StatusBadge, StatCard, STUDY_STATUS_STYLES, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
@@ -964,7 +965,9 @@ export default function StudyDetailPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">{study.aiSummary}</p>
+            <div className="prose prose-sm prose-invert max-w-none text-secondary [&_strong]:text-foreground [&_li]:text-secondary [&_p]:text-secondary [&_ul]:my-1 [&_li]:my-0.5">
+              <ReactMarkdown>{study.aiSummary}</ReactMarkdown>
+            </div>
           </div>
         )}
 
