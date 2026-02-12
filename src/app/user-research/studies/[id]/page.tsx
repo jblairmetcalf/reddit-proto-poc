@@ -966,7 +966,7 @@ export default function StudyDetailPage() {
               )}
             </div>
             <div className="prose prose-invert max-w-none text-sm text-secondary [&_strong]:text-foreground [&_li]:text-secondary [&_p]:text-secondary [&_ul]:my-1 [&_li]:my-0.5 [&_h2]:text-base [&_h3]:text-sm">
-              <ReactMarkdown breaks>{study.aiSummary.replace(/\n/g, "\n\n")}</ReactMarkdown>
+              <ReactMarkdown>{study.aiSummary.replace(/\n/g, "\n\n")}</ReactMarkdown>
             </div>
           </div>
         )}
