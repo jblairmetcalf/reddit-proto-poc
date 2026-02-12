@@ -194,6 +194,15 @@ export default function PrototypesPage() {
                       <h3 className="text-sm font-semibold text-foreground">
                         {proto.title}
                       </h3>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        proto.url
+                          ? "bg-sky-500/20 text-sky-400"
+                          : proto.fileName
+                            ? "bg-teal-500/20 text-teal-400"
+                            : "bg-violet-500/20 text-violet-400"
+                      }`}>
+                        {proto.url ? "Link" : proto.fileName ? "Uploaded" : "Coded"}
+                      </span>
                       <StatusBadge status={proto.status} styleMap={PROTOTYPE_STATUS_STYLES} />
                       {proto.variant && proto.variant !== "default" && (
                         <span
@@ -203,6 +212,11 @@ export default function PrototypesPage() {
                         </span>
                       )}
                     </div>
+                    {proto.description && (
+                      <p className="mt-0.5 text-xs text-secondary truncate">
+                        {proto.description}
+                      </p>
+                    )}
                     <p className="mt-0.5 text-xs text-muted">
                       <Link
                         href={`/prototypers/${proto.prototyperId}`}

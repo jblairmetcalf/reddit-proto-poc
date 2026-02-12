@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Toast from "@/components/infrastructure/Toast";
 import { Dialog, ConfirmDialog, StatusBadge, EmptyState, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
@@ -24,7 +24,7 @@ interface Participant {
   userType?: string;
   studyId: string;
   studyStatus?: Record<string, string>;
-  tokenUrl?: string;
+  tokenUrls?: Record<string, string>;
   createdAt?: { seconds: number };
 }
 
@@ -93,12 +93,39 @@ export default function ParticipantsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+  const undoneRef = useRef<Set<string>>(new Set());
+
+  const actuallyDelete = async (id: string) => {
+    if (undoneRef.current.has(id)) {
+      undoneRef.current.delete(id);
+      return;
+    }
     try {
       await deleteDoc(doc(db, "participants", id));
     } catch (err) {
       console.error("Failed to delete participant:", err);
+    } finally {
+      setPendingDeletes((prev) => { const next = new Set(prev); next.delete(id); return next; });
     }
+  };
+
+  const handleDelete = (id: string) => {
+    const pName = participants.find((p) => p.id === id)?.name ?? "Participant";
+    setPendingDeletes((prev) => new Set(prev).add(id));
+    setToast({
+      message: `Deleted "${pName}"`,
+      onUndo: () => {
+        undoneRef.current.add(id);
+        setPendingDeletes((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      },
+    });
+  };
+
+  const handleToastDismiss = () => {
+    const pending = Array.from(pendingDeletes);
+    setToast(null);
+    pending.forEach((id) => actuallyDelete(id));
   };
 
   const [origEdit, setOrigEdit] = useState({ name: "", email: "" });
@@ -299,7 +326,7 @@ export default function ParticipantsPage() {
         <EmptyState message="No participants yet. Add one to get started." />
       ) : (
         <div className="space-y-3">
-          {participants.map((p) => (
+          {participants.filter((p) => !pendingDeletes.has(p.id)).map((p) => (
             <div
               key={p.id}
               className="rounded-xl border border-edge bg-card p-4"
@@ -360,7 +387,7 @@ export default function ParticipantsPage() {
         message={confirmState?.message ?? ""}
       />
       {toast && (
-        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
+        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={handleToastDismiss} />
       )}
     </div>
   );

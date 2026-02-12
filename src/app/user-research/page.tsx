@@ -8,33 +8,32 @@ const cards = [
     title: "Participants",
     icon: "👥",
     description: "Invite participants, generate token links, and track completion",
-    stat: "Invite",
-    statColor: "text-blue-400",
+    badge: "Invite",
+    badgeColor: "bg-blue-500/20 text-blue-400",
   },
   {
     href: "/user-research/studies",
     title: "Studies",
     icon: "🧪",
     description: "Create and manage UX research studies with prototype variants",
-    stat: "Manage",
-    statColor: "text-orange-400",
+    badge: "Manage",
+    badgeColor: "bg-orange-500/20 text-orange-400",
   },
   {
-    href: "/user-research/dashboard",
+    href: "/user-research/live-dashboard",
     title: "Live Dashboard",
     icon: "📡",
     description: "Real-time event stream and session metrics from prototype interactions",
-    stat: "Live",
-    statColor: "text-green-400",
+    badge: "Live",
+    badgeColor: "bg-green-500/20 text-green-400",
   },
   {
     href: "/user-research/synthetic-users",
     title: "Synthetic Users",
     icon: "🤖",
     description: "Create and manage synthetic user personas like new, casual, core, commenter, and poster",
-    stat: "WIP",
-    statColor: "text-amber-400",
     badge: "WIP",
+    badgeColor: "bg-amber-500/20 text-amber-400",
   },
 ];
 
@@ -55,21 +54,16 @@ export default function UxrOverview() {
             href={card.href}
             className="group rounded-xl border border-edge bg-card p-5 transition-colors hover:border-orange-600"
           >
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3">
               <span className="text-2xl">{card.icon}</span>
-              <span className={`text-xs font-semibold uppercase ${card.statColor}`}>
-                {card.stat}
-              </span>
             </div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground group-hover:text-orange-400">
                 {card.title}
               </h2>
-              {"badge" in card && card.badge && (
-                <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-400">
-                  {card.badge}
-                </span>
-              )}
+              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${card.badgeColor}`}>
+                {card.badge}
+              </span>
             </div>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
               {card.description}

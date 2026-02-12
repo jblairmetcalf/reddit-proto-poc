@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Toast from "@/components/infrastructure/Toast";
-import { Dialog, ConfirmDialog, StatusBadge, PROTOTYPE_STATUS_STYLES, ROLE_STYLES } from "@/components/infrastructure";
+import { Dialog, ConfirmDialog, StatusBadge, PROTOTYPE_STATUS_STYLES, PROTOTYPE_TYPE_STYLES, UX_ROLES, ROLE_STYLES } from "@/components/infrastructure";
 import { db, storage } from "@/lib/firebase";
 import {
   collection,
@@ -39,9 +39,11 @@ interface Prototype {
 
 export default function PrototyperDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [prototyper, setPrototyper] = useState<Prototyper | null>(null);
+  const [creatingStudy, setCreatingStudy] = useState<string | null>(null);
   const [prototypes, setPrototypes] = useState<Prototype[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export default function PrototyperDetailPage() {
   const [editEmail, setEditEmail] = useState("");
   const [savingPrototyper, setSavingPrototyper] = useState(false);
   const [origPrototyper, setOrigPrototyper] = useState({ name: "", role: "", email: "" });
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   // Listen to prototyper doc
   useEffect(() => {
@@ -92,6 +95,20 @@ export default function PrototyperDetailPage() {
     );
     return () => unsub();
   }, [id]);
+
+  // Listen to comment counts for each prototype
+  useEffect(() => {
+    if (prototypes.length === 0) return;
+    const unsubs = prototypes.map((proto) =>
+      onSnapshot(
+        collection(db, "prototypers", id, "prototypes", proto.id, "comments"),
+        (snap) => {
+          setCommentCounts((prev) => ({ ...prev, [proto.id]: snap.size }));
+        }
+      )
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [id, prototypes]);
 
   function resetForm() {
     setTitle("");
@@ -278,6 +295,30 @@ export default function PrototyperDetailPage() {
     }
   };
 
+  const handleCreateStudy = async (proto: Prototype) => {
+    setCreatingStudy(proto.id);
+    try {
+      const pt = proto.url ? "link" : proto.fileName ? "file" : "default";
+      const studyRef = await addDoc(collection(db, "studies"), {
+        name: `${proto.title} Study`,
+        description: "",
+        status: "draft",
+        prototypeId: proto.id,
+        prototyperId: id,
+        prototypeTitle: proto.title,
+        prototypeVariant: proto.variant,
+        prototypeType: pt,
+        prototypeUrl: proto.url || null,
+        createdAt: serverTimestamp(),
+      });
+      router.push(`/user-research/studies/${studyRef.id}`);
+    } catch (err) {
+      console.error("Failed to create study:", err);
+    } finally {
+      setCreatingStudy(null);
+    }
+  };
+
   const latestModified = prototypes.reduce<number | null>((latest, p) => {
     if (!p.modifiedAt) return latest;
     const ts = p.modifiedAt.seconds * 1000;
@@ -312,12 +353,12 @@ export default function PrototyperDetailPage() {
               )}
             </div>
             {prototyper.email && (
-              <p className="mt-0.5 text-xs text-secondary">{prototyper.email}</p>
+              <p className="mt-0.5 text-xs text-muted">{prototyper.email}</p>
             )}
-            <p className="mt-0.5 text-xs text-muted">
+            <p className="mt-1 text-sm text-secondary">
               {prototypes.length} prototype{prototypes.length !== 1 ? "s" : ""}
               {latestModified && (
-                <> &middot; Last modified {new Date(latestModified).toLocaleDateString()}</>
+                <> &middot; Modified {new Date(latestModified).toLocaleDateString()}</>
               )}
             </p>
           </div>
@@ -523,13 +564,16 @@ export default function PrototyperDetailPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-secondary">Role</label>
-            <input
-              type="text"
+            <select
               value={editRole}
               onChange={(e) => setEditRole(e.target.value)}
-              placeholder="e.g., Designer, Engineer"
-              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-            />
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
+            >
+              <option value="">Select a role...</option>
+              {UX_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-secondary">Email</label>
@@ -615,7 +659,16 @@ export default function PrototyperDetailPage() {
                   <h3 className="text-sm font-semibold text-foreground truncate">
                     {proto.title}
                   </h3>
+                  <StatusBadge status={proto.url ? "link" : proto.fileName ? "file" : "coded"} styleMap={PROTOTYPE_TYPE_STYLES} />
                   <StatusBadge status={proto.status} styleMap={PROTOTYPE_STATUS_STYLES} />
+                  {(commentCounts[proto.id] ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-600 px-2 py-0.5 text-[10px] font-medium text-white">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      {commentCounts[proto.id]}
+                    </span>
+                  )}
                 </div>
                 {proto.description && (
                   <p className="mt-0.5 text-xs text-secondary truncate">
@@ -657,6 +710,13 @@ export default function PrototyperDetailPage() {
                     Preview
                   </Link>
                 )}
+                <button
+                  onClick={() => handleCreateStudy(proto)}
+                  disabled={creatingStudy === proto.id}
+                  className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingStudy === proto.id ? "Creating..." : "Create Study"}
+                </button>
                 <button
                   onClick={() => openEdit(proto)}
                   className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"

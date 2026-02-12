@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { VARIANT_PRESETS } from "@/lib/variants";
-import { ConfirmDialog, StatusBadge, EmptyState, ROLE_STYLES } from "@/components/infrastructure";
+import { Dialog, ConfirmDialog, StatusBadge, EmptyState, UX_ROLES, ROLE_STYLES } from "@/components/infrastructure";
 
 interface Prototype {
   id: string;
@@ -220,111 +220,72 @@ export default function PrototypersPage() {
       </header>
 
       {/* Add Prototyper dialog */}
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowCreate(false);
-              setName("");
-              setRole("");
-              setEmail("");
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-edge-strong bg-card p-6 shadow-2xl"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setShowCreate(false);
-                setName("");
-                setRole("");
-                setEmail("");
-              }
-              if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-                handleCreate();
-              }
-            }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                Add Prototyper
-              </h2>
-              <button
-                onClick={() => {
-                  setShowCreate(false);
-                  setName("");
-                  setRole("");
-                  setEmail("");
-                }}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Blair Metcalf"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Role
-                </label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g., Lead Prototyper"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-secondary">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="prototyper@example.com"
-                  className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button
-                  onClick={() => {
-                    setShowCreate(false);
-                    setName("");
-                    setRole("");
-                    setEmail("");
-                  }}
-                  className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={!name.trim() || creating}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating ? "Adding..." : "Add Prototyper"}
-                </button>
-              </div>
-            </div>
+      <Dialog
+        open={showCreate}
+        onClose={() => { setShowCreate(false); setName(""); setRole(""); setEmail(""); }}
+        title="Add Prototyper"
+        onSubmit={handleCreate}
+        footer={
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={() => { setShowCreate(false); setName(""); setRole(""); setEmail(""); }}
+              className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-medium text-secondary transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!name.trim() || creating}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? "Adding..." : "Add Prototyper"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Blair Metcalf"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Role
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground focus:border-orange-500 focus:outline-none"
+            >
+              <option value="">Select a role...</option>
+              {UX_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-secondary">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="prototyper@example.com"
+              className="w-full rounded-lg border border-edge-strong bg-input px-3 py-2 text-sm text-foreground placeholder:text-faint focus:border-orange-500 focus:outline-none"
+            />
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Search */}
       <div className="mb-6">
@@ -382,6 +343,10 @@ export default function PrototypersPage() {
                 <p className="mt-1 text-sm text-secondary">
                   {protos.length} prototype
                   {protos.length !== 1 ? "s" : ""}
+                  {(() => {
+                    const ts = latestProtoTimestamp(p.id);
+                    return ts ? <> &middot; Modified {new Date(ts * 1000).toLocaleDateString()}</> : null;
+                  })()}
                 </p>
                 {/* Show matching prototypes when searching */}
                 {matchingProtos.length > 0 && (

@@ -11,6 +11,7 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  deleteField,
   collection,
   query,
   where,
@@ -41,7 +42,7 @@ interface Participant {
   userType?: string;
   studyId: string;
   studyStatus?: Record<string, string>;
-  tokenUrl?: string;
+  tokenUrls?: Record<string, string>;
   createdAt?: { seconds: number };
 }
 
@@ -112,6 +113,9 @@ export default function StudyDetailPage() {
   const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+
+  // Online presence
+  const [onlineParticipants, setOnlineParticipants] = useState<Set<string>>(new Set());
 
   // Add participant state
   const [showAddParticipant, setShowAddParticipant] = useState(false);
@@ -190,6 +194,25 @@ export default function StudyDetailPage() {
       }));
       docs.sort((a, b) => b.submittedAt - a.submittedAt);
       setSurveyResponses(docs);
+    });
+    return () => unsub();
+  }, [id]);
+
+  // Listen to online presence for this study
+  useEffect(() => {
+    const STALE_MS = 90_000; // 90s fallback if delete didn't complete on close
+    const q = query(collection(db, "presence"), where("studyId", "==", id));
+    const unsub = onSnapshot(q, (snap) => {
+      const now = Date.now();
+      const ids = new Set<string>();
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const lastSeen = data.lastSeen?.toMillis?.();
+        if (data.participantId && (!lastSeen || now - lastSeen < STALE_MS)) {
+          ids.add(data.participantId);
+        }
+      });
+      setOnlineParticipants(ids);
     });
     return () => unsub();
   }, [id]);
@@ -349,7 +372,6 @@ export default function StudyDetailPage() {
     try {
       const pName = allParticipants.find((x) => x.id === selectedParticipantId)?.name ?? "Participant";
       await updateDoc(doc(db, "participants", selectedParticipantId), {
-        studyId: id,
         [`studyStatus.${id}`]: "invited",
       });
       setSelectedParticipantId("");
@@ -371,7 +393,6 @@ export default function StudyDetailPage() {
       await addDoc(collection(db, "participants"), {
         name: savedName,
         email: newParticipantEmail.trim() || null,
-        studyId: id,
         studyStatus: { [id]: "invited" },
         createdAt: serverTimestamp(),
       });
@@ -398,19 +419,20 @@ export default function StudyDetailPage() {
       : isUploaded
         ? `/prototype/uploaded/${study.prototyperId}/${study.prototypeId}`
         : "/prototype";
-    // Use cached tokenUrl only if it points to the correct prototype type
-    const cachedType = p.tokenUrl?.includes("/prototype/link/")
+    // Use cached tokenUrl only if it was generated for THIS study and points to the correct prototype type
+    const cachedUrl = p.tokenUrls?.[id];
+    const cachedType = cachedUrl?.includes("/prototype/link/")
       ? "link"
-      : p.tokenUrl?.includes("/prototype/uploaded/")
+      : cachedUrl?.includes("/prototype/uploaded/")
         ? "file"
         : "default";
-    if (p.tokenUrl && cachedType === (study?.prototypeType || "default")) {
+    if (cachedUrl && cachedType === (study?.prototypeType || "default")) {
       try {
-        await navigator.clipboard.writeText(p.tokenUrl);
+        await navigator.clipboard.writeText(cachedUrl);
         setCopiedId(p.id);
         setTimeout(() => setCopiedId(null), 2000);
       } catch {
-        prompt("Copy this link:", p.tokenUrl);
+        prompt("Copy this link:", cachedUrl);
       }
       return;
     }
@@ -434,7 +456,7 @@ export default function StudyDetailPage() {
         return;
       }
       const tokenData = await tokenRes.json();
-      await updateDoc(doc(db, "participants", p.id), { tokenUrl: tokenData.url });
+      await updateDoc(doc(db, "participants", p.id), { [`tokenUrls.${id}`]: tokenData.url });
       try {
         await navigator.clipboard.writeText(tokenData.url);
         setCopiedId(p.id);
@@ -450,9 +472,19 @@ export default function StudyDetailPage() {
   };
 
   const handleRemoveParticipant = async (participantId: string) => {
+    const participant = participants.find((p) => p.id === participantId);
+    const prevStatus = participant?.studyStatus?.[id];
     try {
       await updateDoc(doc(db, "participants", participantId), {
-        studyId: "",
+        [`studyStatus.${id}`]: deleteField(),
+      });
+      setToast({
+        message: `Removed "${participant?.name ?? "Participant"}" from study`,
+        onUndo: () => {
+          updateDoc(doc(db, "participants", participantId), {
+            [`studyStatus.${id}`]: prevStatus || "invited",
+          }).catch(console.error);
+        },
       });
     } catch (err) {
       console.error("Failed to remove participant:", err);
@@ -856,6 +888,12 @@ export default function StudyDetailPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{p.name}</p>
+                    {onlineParticipants.has(p.id) && (
+                      <span className="relative flex h-2 w-2" title="Online — viewing prototype">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                      </span>
+                    )}
                     {p.persona && (
                       <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                         {p.persona}
@@ -882,12 +920,7 @@ export default function StudyDetailPage() {
                         : "Copy Link"}
                   </button>
                   <button
-                    onClick={() => {
-                      setConfirmState({
-                        message: `Remove "${p.name}" from this study?`,
-                        action: () => handleRemoveParticipant(p.id),
-                      });
-                    }}
+                    onClick={() => handleRemoveParticipant(p.id)}
                     className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     Remove
@@ -986,16 +1019,13 @@ export default function StudyDetailPage() {
                         {new Date(r.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px]">
-                      <span className="text-muted">
-                        Ease: <span className="text-secondary capitalize">{r.easeOfUse}</span>
-                      </span>
-                      <span className="text-muted">
-                        Found: <span className="text-secondary capitalize">{r.foundContent}</span>
-                      </span>
-                      <span className="text-muted">
-                        Satisfaction: <span className="text-secondary capitalize">{r.satisfaction}</span>
-                      </span>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="text-muted">Ease of Use:</span>
+                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.easeOfUse === "easy" ? "bg-green-500/20 text-green-400" : r.easeOfUse === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.easeOfUse}</span>
+                      <span className="text-muted">Found Content:</span>
+                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.foundContent === "easy" ? "bg-green-500/20 text-green-400" : r.foundContent === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.foundContent}</span>
+                      <span className="text-muted">Satisfaction:</span>
+                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.satisfaction === "easy" ? "bg-green-500/20 text-green-400" : r.satisfaction === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.satisfaction}</span>
                     </div>
                     {r.feedback && (
                       <p className="mt-2 text-xs text-secondary italic">&ldquo;{r.feedback}&rdquo;</p>

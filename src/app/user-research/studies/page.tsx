@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Toast from "@/components/infrastructure/Toast";
 import { Dialog, ConfirmDialog, StatusBadge, EmptyState, STUDY_STATUS_STYLES } from "@/components/infrastructure";
@@ -216,10 +216,14 @@ export default function StudiesPage() {
     }
   };
 
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+  const undoneRef = useRef<Set<string>>(new Set());
 
-  const handleDelete = async (id: string) => {
-    setDeleting(id);
+  const actuallyDelete = async (id: string) => {
+    if (undoneRef.current.has(id)) {
+      undoneRef.current.delete(id);
+      return;
+    }
     try {
       // Delete outcomes subcollection
       const outcomesSnap = await getDocs(collection(db, "studies", id, "outcomes"));
@@ -242,8 +246,27 @@ export default function StudiesPage() {
     } catch (err) {
       console.error("Failed to delete study:", err);
     } finally {
-      setDeleting(null);
+      setPendingDeletes((prev) => { const next = new Set(prev); next.delete(id); return next; });
     }
+  };
+
+  const handleDelete = (id: string) => {
+    const studyName = studies.find((s) => s.id === id)?.name ?? "Study";
+    setPendingDeletes((prev) => new Set(prev).add(id));
+    setToast({
+      message: `Deleted "${studyName}"`,
+      onUndo: () => {
+        undoneRef.current.add(id);
+        setPendingDeletes((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      },
+    });
+  };
+
+  // Perform actual delete when toast dismisses
+  const handleToastDismiss = () => {
+    const pending = Array.from(pendingDeletes);
+    setToast(null);
+    pending.forEach((id) => actuallyDelete(id));
   };
 
   return (
@@ -380,7 +403,7 @@ export default function StudiesPage() {
         <EmptyState message="No studies yet. Create one to get started." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {studies.map((study) => (
+          {studies.filter((s) => !pendingDeletes.has(s.id)).map((study) => (
             <div
               key={study.id}
               className="group relative rounded-xl border border-edge bg-card p-6 transition-colors hover:border-orange-600"
@@ -405,10 +428,9 @@ export default function StudiesPage() {
                       action: () => handleDelete(study.id),
                     });
                   }}
-                  disabled={deleting === study.id}
-                  className="relative z-10 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                  className="relative z-10 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                 >
-                  {deleting === study.id ? "Deleting..." : "Delete"}
+                  Delete
                 </button>
               </div>
               <p className="mt-1 text-xs text-muted">
@@ -432,7 +454,7 @@ export default function StudiesPage() {
         message={confirmState?.message ?? ""}
       />
       {toast && (
-        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />
+        <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={handleToastDismiss} />
       )}
     </div>
   );

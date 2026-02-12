@@ -183,7 +183,23 @@ export default function DashboardPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Live Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">Live Dashboard</h1>
+            <span
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
+                connected
+                  ? "bg-green-500/20 text-green-400"
+                  : "bg-subtle text-secondary"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  connected ? "bg-green-400 animate-pulse" : "bg-muted"
+                }`}
+              />
+              {connected ? "Connected" : "Connecting..."}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-secondary">
             Real-time event stream from prototype interactions
           </p>
@@ -221,20 +237,6 @@ export default function DashboardPage() {
           >
             {deleting ? "Clearing..." : selectedStudyId ? "Clear Study Events" : "Clear All Events"}
           </button>
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-              connected
-                ? "bg-green-500/20 text-green-400"
-                : "bg-subtle text-secondary"
-            }`}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                connected ? "bg-green-400 animate-pulse" : "bg-muted"
-              }`}
-            />
-            {connected ? "Connected" : "Connecting..."}
-          </span>
         </div>
       </header>
 

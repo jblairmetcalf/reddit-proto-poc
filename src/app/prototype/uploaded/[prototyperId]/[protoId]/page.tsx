@@ -5,8 +5,10 @@ import { useParams, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import SurveyOverlay from "@/components/reddit/SurveyOverlay";
+import CommentPanel from "@/components/prototype/CommentPanel";
 import { getSessionId } from "@/lib/tracking";
 import { useTracking } from "@/hooks/useTracking";
+import { usePresence } from "@/hooks/usePresence";
 
 interface Prototype {
   title: string;
@@ -33,6 +35,7 @@ function UploadedPreviewContent() {
   const [variant, setVariant] = useState<string | undefined>();
 
   const { track } = useTracking({ participantId, studyId, variant });
+  usePresence({ participantId, studyId });
 
   const handleTrack = (event: string, data?: Record<string, unknown>) => {
     track(event as Parameters<typeof track>[0], data);
@@ -96,6 +99,10 @@ function UploadedPreviewContent() {
     />
   ) : null;
 
+  const commentPanel = !isParticipant ? (
+    <CommentPanel prototyperId={prototyperId} protoId={protoId} />
+  ) : null;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -141,6 +148,7 @@ function UploadedPreviewContent() {
           className="h-screen w-screen border-0"
         />
         {surveyOverlay}
+        {commentPanel}
       </>
     );
   }
@@ -156,6 +164,7 @@ function UploadedPreviewContent() {
           className="h-screen w-screen border-0"
         />
         {surveyOverlay}
+        {commentPanel}
       </>
     );
   }
@@ -170,6 +179,7 @@ function UploadedPreviewContent() {
           className="h-screen w-screen border-0"
         />
         {surveyOverlay}
+        {commentPanel}
       </>
     );
   }
@@ -185,6 +195,7 @@ function UploadedPreviewContent() {
           />
         </div>
         {surveyOverlay}
+        {commentPanel}
       </>
     );
   }
@@ -203,6 +214,7 @@ function UploadedPreviewContent() {
         </a>
       </div>
       {surveyOverlay}
+      {commentPanel}
     </>
   );
 }

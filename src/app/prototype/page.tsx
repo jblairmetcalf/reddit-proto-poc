@@ -6,6 +6,7 @@ import Link from "next/link";
 import RedditMobile from "@/components/reddit/RedditMobile";
 import SurveyOverlay from "@/components/reddit/SurveyOverlay";
 import { useTracking } from "@/hooks/useTracking";
+import { usePresence } from "@/hooks/usePresence";
 import { getSessionId } from "@/lib/tracking";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -260,6 +261,7 @@ function PrototypeContent() {
   const [subreddits, setSubreddits] = useState<PrototypeSubreddit[] | undefined>();
   const [loading, setLoading] = useState(true);
   const { track } = useTracking({ participantId, studyId, variant: variantConfig?.id });
+  usePresence({ participantId, studyId });
 
   // Verify participant token if present
   useEffect(() => {

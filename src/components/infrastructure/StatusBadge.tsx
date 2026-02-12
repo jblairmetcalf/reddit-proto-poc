@@ -24,10 +24,26 @@ export const PROTOTYPE_STATUS_STYLES: Record<string, string> = {
   complete: "bg-green-500/20 text-green-400",
 };
 
+export const UX_ROLES = [
+  "UX Manager",
+  "UX Designer",
+  "UX Content Designer",
+  "UX Engineer",
+  "UX Researcher",
+] as const;
+
 export const ROLE_STYLES: Record<string, string> = {
-  "Lead Prototyper": "bg-orange-500/20 text-orange-400",
+  "UX Manager": "bg-orange-500/20 text-orange-400",
+  "UX Designer": "bg-sky-500/20 text-sky-400",
+  "UX Content Designer": "bg-teal-500/20 text-teal-400",
   "UX Engineer": "bg-violet-500/20 text-violet-400",
-  "Interaction Designer": "bg-sky-500/20 text-sky-400",
+  "UX Researcher": "bg-amber-500/20 text-amber-400",
+};
+
+export const PROTOTYPE_TYPE_STYLES: Record<string, string> = {
+  file: "bg-sky-500/20 text-sky-400",
+  link: "bg-violet-500/20 text-violet-400",
+  coded: "bg-teal-500/20 text-teal-400",
 };
 
 export const VARIANT_BADGE_COLORS: Record<string, string> = {

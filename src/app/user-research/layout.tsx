@@ -8,7 +8,7 @@ const navItems = [
   { href: "/user-research", label: "Overview", icon: "📊" },
   { href: "/user-research/participants", label: "Participants", icon: "👥" },
   { href: "/user-research/studies", label: "Studies", icon: "🧪" },
-  { href: "/user-research/dashboard", label: "Live Dashboard", icon: "📡" },
+  { href: "/user-research/live-dashboard", label: "Live Dashboard", icon: "📡" },
   { href: "/user-research/synthetic-users", label: "Synthetic Users", icon: "🤖", badge: "WIP" },
 ];
 
