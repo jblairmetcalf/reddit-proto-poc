@@ -4,10 +4,22 @@ import { VertexAI } from "@google-cloud/vertexai";
 let vertexClient: VertexAI | null = null;
 function getVertexClient() {
   if (!vertexClient) {
-    vertexClient = new VertexAI({
-      project: process.env.GOOGLE_CLOUD_PROJECT!,
-      location: process.env.VERTEX_AI_LOCATION || "us-central1",
-    });
+    const project = process.env.GOOGLE_CLOUD_PROJECT!;
+    const location = process.env.VERTEX_AI_LOCATION || "us-central1";
+
+    // In production (Vercel), use inline credentials from env var
+    const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    if (keyJson) {
+      const credentials = JSON.parse(keyJson);
+      vertexClient = new VertexAI({
+        project,
+        location,
+        googleAuthOptions: { credentials },
+      });
+    } else {
+      // Locally, falls back to GOOGLE_APPLICATION_CREDENTIALS file
+      vertexClient = new VertexAI({ project, location });
+    }
   }
   return vertexClient;
 }
