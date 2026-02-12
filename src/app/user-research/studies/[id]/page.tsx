@@ -427,7 +427,8 @@ export default function StudyDetailPage() {
       : cachedUrl?.includes("/prototype/uploaded/")
         ? "file"
         : "default";
-    if (cachedUrl && cachedType === (study?.prototypeType || "default")) {
+    const cachedMatchesOrigin = cachedUrl?.startsWith(window.location.origin);
+    if (cachedUrl && cachedMatchesOrigin && cachedType === (study?.prototypeType || "default")) {
       try {
         await navigator.clipboard.writeText(cachedUrl);
         setCopiedId(p.id);

@@ -13,9 +13,12 @@ export async function POST(req: NextRequest) {
     }
 
     const token = await createParticipantToken({ participantId, studyId, name, prototypeVariant });
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host;
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    const origin = `${proto}://${host}`;
     const base = prototypeUrl || "/prototype";
     const separator = base.includes("?") ? "&" : "?";
-    const url = `${req.nextUrl.origin}${base}${separator}token=${token}`;
+    const url = `${origin}${base}${separator}token=${token}`;
 
     return NextResponse.json({ token, url });
   } catch (err) {
