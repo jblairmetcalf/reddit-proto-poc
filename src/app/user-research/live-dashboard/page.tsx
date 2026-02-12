@@ -355,10 +355,13 @@ export default function DashboardPage() {
                 const colorClass =
                   EVENT_COLORS[event.type] ||
                   "bg-subtle/30 text-secondary border-edge-strong/30";
+                const studyName = event.studyId
+                  ? studies.find((s) => s.id === event.studyId)?.name
+                  : null;
                 return (
                   <div
                     key={event.id}
-                    className="flex items-start gap-3 rounded-lg border border-edge bg-background/50 p-3"
+                    className="flex items-start gap-3 border-b border-edge pb-2 last:border-0"
                   >
                     <span
                       className={`mt-0.5 shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${colorClass}`}
@@ -368,10 +371,12 @@ export default function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-xs text-muted">
                         <span>{formatTime(event.timestamp)}</span>
-                        <span>&middot;</span>
-                        <span className="font-mono truncate">
-                          {event.sessionId}
-                        </span>
+                        {studyName && (
+                          <>
+                            <span>&middot;</span>
+                            <span className="text-orange-400 font-medium">{studyName}</span>
+                          </>
+                        )}
                         {event.participantId && (
                           <>
                             <span>&middot;</span>

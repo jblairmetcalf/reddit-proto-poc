@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import Toast from "@/components/infrastructure/Toast";
+import SankeyDiagram from "@/components/infrastructure/SankeyDiagram";
 import { Dialog, ConfirmDialog, StatusBadge, StatCard, STUDY_STATUS_STYLES, PARTICIPANT_STATUS_STYLES } from "@/components/infrastructure";
 import { db } from "@/lib/firebase";
 import {
@@ -68,6 +69,54 @@ interface SurveyResponse {
   satisfaction: "easy" | "neutral" | "difficult";
   feedback: string | null;
   submittedAt: number;
+}
+
+interface TrackingEvent {
+  type: string;
+  sessionId: string;
+  participantId?: string;
+  studyId?: string;
+  variant?: string;
+  timestamp: number;
+  data?: Record<string, unknown>;
+  device?: {
+    userAgent: string;
+    platform: string;
+    screenWidth: number;
+    screenHeight: number;
+    viewportWidth: number;
+    viewportHeight: number;
+    touchSupported: boolean;
+  };
+}
+
+const EVENT_COLORS: Record<string, string> = {
+  session_start: "bg-green-500/20 text-green-400 border-green-500/30",
+  session_end: "bg-red-500/20 text-red-400 border-red-500/30",
+  page_view: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  tab_switch: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  post_click: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  vote: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  comment_vote: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  search: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  community_click: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  share_click: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+  create_post_open: "bg-pink-500/20 text-pink-400 border-pink-500/30",
+  sort_change: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+};
+
+function formatEventTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function getDeviceLabel(device?: TrackingEvent["device"]): string {
+  if (!device) return "Unknown";
+  const isMobile = device.touchSupported && device.screenWidth < 768;
+  return isMobile ? "Mobile" : "Desktop";
 }
 
 interface Prototyper {
@@ -164,11 +213,18 @@ export default function StudyDetailPage() {
     return () => unsub();
   }, [id]);
 
-  // Listen to event count for this study
+  // Listen to events for this study
+  const [studyEvents, setStudyEvents] = useState<(TrackingEvent & { id: string })[]>([]);
   useEffect(() => {
     const q = query(collection(db, "events"), where("studyId", "==", id));
     const unsub = onSnapshot(q, (snap) => {
-      setEventCount(snap.size);
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as TrackingEvent),
+      }));
+      docs.sort((a, b) => b.timestamp - a.timestamp);
+      setStudyEvents(docs);
+      setEventCount(docs.length);
     });
     return () => unsub();
   }, [id]);
@@ -936,6 +992,114 @@ export default function StudyDetailPage() {
         )}
       </div>
 
+      {/* Live Dashboard */}
+      <div className="mt-8 rounded-xl border border-edge bg-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Live Dashboard</h2>
+            <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${studyEvents.length > 0 ? "bg-green-500/20 text-green-400" : "bg-subtle text-secondary"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${studyEvents.length > 0 ? "bg-green-400 animate-pulse" : "bg-muted"}`} />
+              {studyEvents.length > 0 ? "Live" : "Waiting"}
+            </span>
+          </div>
+          <span className="text-xs text-muted">{studyEvents.length} event{studyEvents.length !== 1 ? "s" : ""}</span>
+        </div>
+
+        {studyEvents.length === 0 ? (
+          <p className="text-sm text-muted">
+            No events yet. Send participants the prototype link to start collecting data.
+          </p>
+        ) : (
+          <>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Event breakdown bars */}
+            <div>
+              <h3 className="mb-3 text-xs font-semibold text-secondary">Event Breakdown</h3>
+              <div className="space-y-2">
+                {(() => {
+                  const eventsByType: Record<string, number> = {};
+                  for (const e of studyEvents) eventsByType[e.type] = (eventsByType[e.type] || 0) + 1;
+                  const sorted = Object.entries(eventsByType).sort(([, a], [, b]) => b - a);
+                  return sorted.map(([type, count]) => {
+                    const pct = Math.round((count / studyEvents.length) * 100);
+                    return (
+                      <div key={type}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-mono text-secondary">{type}</span>
+                          <span className="text-muted">{count} ({pct}%)</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-input">
+                          <div
+                            className="h-1.5 rounded-full bg-orange-500 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Live event stream */}
+            <div className="lg:col-span-2">
+              <h3 className="mb-3 text-xs font-semibold text-secondary">Live Event Stream</h3>
+              <div className="max-h-[400px] space-y-2 overflow-y-auto pr-2">
+                {studyEvents.slice(0, 100).map((event) => {
+                  const colorClass = EVENT_COLORS[event.type] || "bg-subtle/30 text-secondary border-edge-strong/30";
+                  const participant = event.participantId ? participants.find((p) => p.id === event.participantId) : null;
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex items-start gap-3 border-b border-edge pb-2 last:border-0"
+                    >
+                      <span className={`mt-0.5 shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${colorClass}`}>
+                        {event.type}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-xs text-muted">
+                          <span>{formatEventTime(event.timestamp)}</span>
+                          {participant && (
+                            <>
+                              <span>&middot;</span>
+                              <span className="text-blue-400 font-medium">{participant.name}</span>
+                            </>
+                          )}
+                          {!participant && event.participantId && (
+                            <>
+                              <span>&middot;</span>
+                              <span className="text-blue-400 font-mono truncate">{event.participantId}</span>
+                            </>
+                          )}
+                          {event.variant && (
+                            <>
+                              <span>&middot;</span>
+                              <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase bg-subtle text-secondary">
+                                {event.variant}
+                              </span>
+                            </>
+                          )}
+                          <span>&middot;</span>
+                          <span>{getDeviceLabel(event.device)}</span>
+                        </div>
+                        {event.data && Object.keys(event.data).length > 0 && (
+                          <pre className="mt-1 text-[11px] leading-relaxed text-faint truncate">
+                            {JSON.stringify(event.data)}
+                          </pre>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <SankeyDiagram events={studyEvents} />
+          </>
+        )}
+      </div>
+
       {/* Survey Responses */}
       <div className="mt-8 rounded-xl border border-edge bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -1019,31 +1183,38 @@ export default function StudyDetailPage() {
             </div>
 
             {/* Individual responses */}
-            <div className="space-y-2">
+            <div className="space-y-0 divide-y divide-edge-strong">
               {surveyResponses.map((r) => {
                 const participant = participants.find((p) => p.id === r.participantId);
                 return (
-                  <div key={r.id} className="rounded-lg border border-edge-strong bg-input p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-foreground">
-                        {participant?.name || r.participantId}
-                      </span>
-                      <span className="text-[10px] text-faint">
-                        {new Date(r.submittedAt).toLocaleDateString()}{" "}
-                        {new Date(r.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
+                  <div key={r.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[10px] font-bold text-gray-500">
+                        {(participant?.name || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1">
+                          <span className="text-xs font-medium text-foreground">
+                            {participant?.name || r.participantId}
+                          </span>
+                          <span className="ml-2 text-[10px] text-faint">
+                            {new Date(r.submittedAt).toLocaleDateString()}{" "}
+                            {new Date(r.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px]">
+                          <span className="text-muted">Ease of Use:</span>
+                          <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.easeOfUse === "easy" ? "bg-green-500/20 text-green-400" : r.easeOfUse === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.easeOfUse}</span>
+                          <span className="text-muted">Found Content:</span>
+                          <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.foundContent === "easy" ? "bg-green-500/20 text-green-400" : r.foundContent === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.foundContent}</span>
+                          <span className="text-muted">Satisfaction:</span>
+                          <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.satisfaction === "easy" ? "bg-green-500/20 text-green-400" : r.satisfaction === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.satisfaction}</span>
+                        </div>
+                        {r.feedback && (
+                          <p className="mt-2 text-xs text-secondary italic">&ldquo;{r.feedback}&rdquo;</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-muted">Ease of Use:</span>
-                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.easeOfUse === "easy" ? "bg-green-500/20 text-green-400" : r.easeOfUse === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.easeOfUse}</span>
-                      <span className="text-muted">Found Content:</span>
-                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.foundContent === "easy" ? "bg-green-500/20 text-green-400" : r.foundContent === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.foundContent}</span>
-                      <span className="text-muted">Satisfaction:</span>
-                      <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${r.satisfaction === "easy" ? "bg-green-500/20 text-green-400" : r.satisfaction === "neutral" ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"}`}>{r.satisfaction}</span>
-                    </div>
-                    {r.feedback && (
-                      <p className="mt-2 text-xs text-secondary italic">&ldquo;{r.feedback}&rdquo;</p>
-                    )}
                   </div>
                 );
               })}
