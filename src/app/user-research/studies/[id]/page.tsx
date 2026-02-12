@@ -966,7 +966,7 @@ export default function StudyDetailPage() {
               )}
             </div>
             <div className="prose prose-sm prose-invert max-w-none text-secondary [&_strong]:text-foreground [&_li]:text-secondary [&_p]:text-secondary [&_ul]:my-1 [&_li]:my-0.5">
-              <ReactMarkdown>{study.aiSummary}</ReactMarkdown>
+              <ReactMarkdown breaks>{study.aiSummary}</ReactMarkdown>
             </div>
           </div>
         )}
