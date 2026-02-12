@@ -31,6 +31,8 @@ interface Study {
   prototypeVariant?: string;
   prototypeType?: "file" | "link" | "default" | null;
   prototypeUrl?: string;
+  aiSummary?: string;
+  aiSummaryAt?: { seconds: number };
   createdAt?: { seconds: number };
 }
 
@@ -111,7 +113,6 @@ export default function StudyDetailPage() {
   const [outcomeNextSteps, setOutcomeNextSteps] = useState("");
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([]);
-  const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
 
   // Online presence
@@ -494,7 +495,6 @@ export default function StudyDetailPage() {
   const handleSummarizeSurvey = async () => {
     if (surveyResponses.length === 0) return;
     setSummarizing(true);
-    setSummary(null);
     try {
       const res = await fetch("/api/summarize", {
         method: "POST",
@@ -514,16 +514,18 @@ export default function StudyDetailPage() {
           })),
           studyId: id,
           studyName: study?.name,
+          provider: "gemini",
         }),
       });
       if (res.ok) {
         const data = await res.json();
-        setSummary(data.summary);
-      } else {
-        setSummary("Failed to generate summary.");
+        await updateDoc(doc(db, "studies", id), {
+          aiSummary: data.summary,
+          aiSummaryAt: serverTimestamp(),
+        });
       }
-    } catch {
-      setSummary("Error connecting to summarize API.");
+    } catch (err) {
+      console.error("Failed to generate summary:", err);
     } finally {
       setSummarizing(false);
     }
@@ -942,18 +944,26 @@ export default function StudyDetailPage() {
               <button
                 onClick={handleSummarizeSurvey}
                 disabled={summarizing}
-                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {summarizing ? "Summarizing..." : "AI Summary"}
+                {summarizing ? "Summarizing..." : study?.aiSummary ? "Regenerate AI Summary" : "AI Summary"}
               </button>
             )}
           </div>
         </div>
 
-        {summary && (
-          <div className="mb-4 rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
-            <h3 className="mb-2 text-xs font-semibold text-purple-400">AI Summary</h3>
-            <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">{summary}</p>
+        {study.aiSummary && (
+          <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-blue-400">AI Summary</h3>
+              {study.aiSummaryAt && (
+                <span className="text-[10px] text-faint">
+                  {new Date(study.aiSummaryAt.seconds * 1000).toLocaleDateString()}{" "}
+                  {new Date(study.aiSummaryAt.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+            </div>
+            <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">{study.aiSummary}</p>
           </div>
         )}
 

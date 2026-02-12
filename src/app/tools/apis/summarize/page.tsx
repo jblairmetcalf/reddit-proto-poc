@@ -75,7 +75,7 @@ export default function SummarizeApiPage() {
         </div>
         <code className="text-xs text-muted">/api/summarize</code>
         <p className="mt-2 text-sm text-secondary">
-          Send prototype interaction events to Claude AI for UX research analysis.
+          Send prototype interaction events to Gemini AI for UX research analysis.
           Returns a 3-5 paragraph summary of behavior patterns, engagement signals, and recommendations.
         </p>
       </header>
