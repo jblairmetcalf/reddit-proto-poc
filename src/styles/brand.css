@@ -1,0 +1,205 @@
+/*
+ * Brand Design Tokens
+ * Adapted from the Reddit Careers page design language.
+ * Light/dark mode via CSS custom properties.
+ */
+
+/* ─── Light Mode (default) ─── */
+:root,
+.light {
+  /* Surfaces */
+  --brand-bg: #FFFFFF;
+  --brand-bg-alt: #F6F7F8;
+  --brand-surface: rgba(0, 0, 0, 0.025);
+  --brand-surface-hover: rgba(255, 69, 0, 0.05);
+
+  /* Borders */
+  --brand-border: rgba(0, 0, 0, 0.07);
+  --brand-border-hover: rgba(255, 69, 0, 0.35);
+  --brand-border-subtle: rgba(0, 0, 0, 0.05);
+
+  /* Text */
+  --brand-text: #1A1A1B;
+  --brand-text-secondary: #4A5568;
+  --brand-text-muted: #6B7B8D;
+  --brand-text-faint: #C4CDD5;
+
+  /* Chips / Pills */
+  --brand-chip-bg: rgba(0, 0, 0, 0.03);
+  --brand-chip-border: rgba(0, 0, 0, 0.1);
+  --brand-chip-text: #576F76;
+
+  /* Hero */
+  --brand-hero-bg: linear-gradient(135deg, #FFF5F0 0%, #FFF0E6 30%, #F8F9FA 60%, #EFF2FF 100%);
+
+  /* Effects */
+  --brand-particle-opacity: 0.18;
+  --brand-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --brand-glow-divider: rgba(255, 69, 0, 0.12);
+
+  /* Comment / Testimonial */
+  --brand-testimonial-text: #4A5568;
+
+  /* Semantic pills */
+  --brand-remote-bg: rgba(13, 211, 187, 0.08);
+  --brand-hybrid-bg: rgba(113, 147, 255, 0.08);
+
+  /* Value tile gradient */
+  --brand-value-bg: linear-gradient(145deg, rgba(255, 69, 0, 0.025), rgba(113, 147, 255, 0.02));
+}
+
+/* ─── Dark Mode (system preference) ─── */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --brand-bg: #060B0D;
+    --brand-bg-alt: #0B1416;
+    --brand-surface: rgba(255, 255, 255, 0.04);
+    --brand-surface-hover: rgba(255, 69, 0, 0.06);
+    --brand-border: rgba(255, 255, 255, 0.07);
+    --brand-border-hover: rgba(255, 69, 0, 0.25);
+    --brand-border-subtle: rgba(255, 255, 255, 0.06);
+    --brand-text: #FFFFFF;
+    --brand-text-secondary: #9AABB8;
+    --brand-text-muted: #6B7B8D;
+    --brand-text-faint: #3D4F5F;
+    --brand-chip-bg: rgba(255, 255, 255, 0.04);
+    --brand-chip-border: rgba(255, 255, 255, 0.12);
+    --brand-chip-text: #aab;
+    --brand-hero-bg: linear-gradient(135deg, #060B0D 0%, #1a0800 40%, #0B1416 70%, #0a1a2e 100%);
+    --brand-particle-opacity: 0.35;
+    --brand-card-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    --brand-glow-divider: rgba(255, 69, 0, 0.3);
+    --brand-testimonial-text: #B0BEC5;
+    --brand-remote-bg: rgba(13, 211, 187, 0.12);
+    --brand-hybrid-bg: rgba(113, 147, 255, 0.12);
+    --brand-value-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  }
+}
+
+/* ─── Explicit .dark class ─── */
+.dark {
+  --brand-bg: #060B0D;
+  --brand-bg-alt: #0B1416;
+  --brand-surface: rgba(255, 255, 255, 0.04);
+  --brand-surface-hover: rgba(255, 69, 0, 0.06);
+  --brand-border: rgba(255, 255, 255, 0.07);
+  --brand-border-hover: rgba(255, 69, 0, 0.25);
+  --brand-border-subtle: rgba(255, 255, 255, 0.06);
+  --brand-text: #FFFFFF;
+  --brand-text-secondary: #9AABB8;
+  --brand-text-muted: #6B7B8D;
+  --brand-text-faint: #3D4F5F;
+  --brand-chip-bg: rgba(255, 255, 255, 0.04);
+  --brand-chip-border: rgba(255, 255, 255, 0.12);
+  --brand-chip-text: #aab;
+  --brand-hero-bg: linear-gradient(135deg, #060B0D 0%, #1a0800 40%, #0B1416 70%, #0a1a2e 100%);
+  --brand-particle-opacity: 0.35;
+  --brand-card-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  --brand-glow-divider: rgba(255, 69, 0, 0.3);
+  --brand-testimonial-text: #B0BEC5;
+  --brand-remote-bg: rgba(13, 211, 187, 0.12);
+  --brand-hybrid-bg: rgba(113, 147, 255, 0.12);
+  --brand-value-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+}
+
+/* ─── Brand Colors (invariant) ─── */
+:root {
+  --brand-orangered: #FF4500;
+  --brand-deep-orange: #D93A00;
+  --brand-aqua: #0DD3BB;
+  --brand-aqua-dark: #099E8D;
+  --brand-periwinkle: #7193FF;
+  --brand-upvote: #FF8B60;
+  --brand-karma: #FFDF00;
+}
+
+/* ─── Animation Keyframes ─── */
+@keyframes brand-float-up {
+  0%   { transform: translateY(0) scale(1); opacity: var(--brand-particle-opacity, 0.25); }
+  50%  { opacity: calc(var(--brand-particle-opacity, 0.25) * 1.7); }
+  100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
+}
+
+@keyframes brand-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+
+@keyframes brand-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes brand-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes brand-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes brand-dot-bounce {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.25; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes brand-bobble {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes brand-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 69, 0, 0); }
+}
+
+@keyframes brand-fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Utility Classes ─── */
+.brand-anim-hidden {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.brand-anim-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.8s cubic-bezier(.23, 1, .32, 1),
+              transform 0.8s cubic-bezier(.23, 1, .32, 1);
+}
+
+/* ChatType cursor & dots */
+.brand-chat-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.8em;
+  background: var(--brand-orangered);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: brand-cursor-blink 0.5s step-end infinite;
+  border-radius: 1px;
+}
+
+.brand-typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.brand-typing-dots .brand-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-orangered);
+}
+
+.brand-typing-dots .brand-dot:nth-child(1) { animation: brand-dot-bounce 0.6s infinite; }
+.brand-typing-dots .brand-dot:nth-child(2) { animation: brand-dot-bounce 0.6s 0.1s infinite; }
+.brand-typing-dots .brand-dot:nth-child(3) { animation: brand-dot-bounce 0.6s 0.2s infinite; }
