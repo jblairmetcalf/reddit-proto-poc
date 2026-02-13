@@ -335,6 +335,21 @@ async function serveZipFile(
     );
   }
 
+  // For HTML files, inject a <base> tag so absolute paths (e.g. /bundle.js)
+  // resolve relative to the API serve route instead of the domain root.
+  if (isHtml(requestedPath)) {
+    const baseHref = `/api/prototype/serve/${prototyperId}/${protoId}/`;
+    let html = new TextDecoder().decode(fileData);
+    if (html.includes("<head>")) {
+      html = html.replace("<head>", `<head><base href="${baseHref}">`);
+    } else if (html.includes("<head ")) {
+      html = html.replace(/<head\s[^>]*>/, (m) => `${m}<base href="${baseHref}">`);
+    }
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
   return new NextResponse(Buffer.from(fileData), {
     headers: { "Content-Type": getMimeType(requestedPath) },
   });
