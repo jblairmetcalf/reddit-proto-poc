@@ -305,20 +305,21 @@ async function serveZipFile(
     const allPaths: string[] = [];
 
     for (const [path, entry] of Object.entries(zip.files)) {
-      if (!entry.dir) {
-        allPaths.push(path);
-      }
+      // Skip directories, macOS metadata, and hidden files
+      if (entry.dir) continue;
+      if (path.startsWith("__MACOSX/") || path.startsWith(".")) continue;
+      const basename = path.split("/").pop() ?? "";
+      if (basename.startsWith("._") || basename === ".DS_Store") continue;
+      allPaths.push(path);
     }
 
     const prefix = stripCommonPrefix(allPaths);
 
-    for (const [path, entry] of Object.entries(zip.files)) {
-      if (!entry.dir) {
-        const normalizedPath = prefix ? path.slice(prefix.length) : path;
-        if (normalizedPath) {
-          const data = await entry.async("uint8array");
-          files.set(normalizedPath, data);
-        }
+    for (const path of allPaths) {
+      const normalizedPath = prefix ? path.slice(prefix.length) : path;
+      if (normalizedPath) {
+        const data = await zip.files[path].async("uint8array");
+        files.set(normalizedPath, data);
       }
     }
 
