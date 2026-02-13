@@ -66,6 +66,7 @@ export default function PrototyperDetailPage() {
   const [savingPrototyper, setSavingPrototyper] = useState(false);
   const [origPrototyper, setOrigPrototyper] = useState({ name: "", role: "", email: "" });
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Listen to prototyper doc
   useEffect(() => {
@@ -325,6 +326,23 @@ export default function PrototyperDetailPage() {
     const ts = p.modifiedAt.seconds * 1000;
     return latest === null || ts > latest ? ts : latest;
   }, null);
+
+  function getPreviewPath(proto: Prototype): string {
+    if (proto.url) return `/prototype/link/${id}/${proto.id}`;
+    if (proto.fileName) return `/prototype/uploaded/${id}/${proto.id}`;
+    return `/prototype?variant=${proto.variant}`;
+  }
+
+  const handleCopyLink = async (proto: Prototype) => {
+    const url = `${window.location.origin}${getPreviewPath(proto)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(proto.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      prompt("Copy this link:", url);
+    }
+  };
 
   if (!prototyper) {
     return (
@@ -686,31 +704,19 @@ export default function PrototyperDetailPage() {
                 )}
               </div>
               <div className="ml-4 flex flex-shrink-0 items-center gap-2">
-                {proto.url ? (
-                  <Link
-                    href={`/prototype/link/${id}/${proto.id}`}
-                    target="_blank"
-                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                  >
-                    Preview
-                  </Link>
-                ) : proto.fileName ? (
-                  <Link
-                    href={`/prototype/uploaded/${id}/${proto.id}`}
-                    target="_blank"
-                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                  >
-                    Preview
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/prototype?variant=${proto.variant}`}
-                    target="_blank"
-                    className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                  >
-                    Preview
-                  </Link>
-                )}
+                <button
+                  onClick={() => handleCopyLink(proto)}
+                  className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                >
+                  {copiedId === proto.id ? "Copied!" : "Copy Link"}
+                </button>
+                <Link
+                  href={getPreviewPath(proto)}
+                  target="_blank"
+                  className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                >
+                  Preview
+                </Link>
                 <button
                   onClick={() => handleCreateStudy(proto)}
                   disabled={creatingStudy === proto.id}
@@ -718,6 +724,15 @@ export default function PrototyperDetailPage() {
                 >
                   {creatingStudy === proto.id ? "Creating..." : "Create Study"}
                 </button>
+                {proto.fileUrl && (
+                  <a
+                    href={proto.fileUrl}
+                    download={proto.fileName || true}
+                    className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                  >
+                    Download
+                  </a>
+                )}
                 <button
                   onClick={() => openEdit(proto)}
                   className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"

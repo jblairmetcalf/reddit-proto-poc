@@ -31,15 +31,13 @@ export default function ApisPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <header className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Link
-            href="/tools"
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            &larr;
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">APIs</h1>
-        </div>
+        <Link
+          href="/tools"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-orange-400"
+        >
+          &larr; Tools
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">APIs</h1>
         <p className="text-sm text-secondary">
           Explore and test all available API endpoints.
         </p>

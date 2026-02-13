@@ -19,12 +19,12 @@ export default function UxrLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="sticky top-0 h-screen w-56 flex-shrink-0 overflow-y-auto border-r border-edge bg-card">
-        <div className="flex items-center gap-3 border-b border-edge px-5 py-4">
+        <div className="border-b border-edge px-5 py-4">
           <Link
             href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
+            className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-orange-400"
           >
-            &larr;
+            &larr; Dashboard
           </Link>
           <h1 className="text-base font-bold text-foreground">User Research</h1>
         </div>

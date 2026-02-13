@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import Toast from "@/components/infrastructure/Toast";
+import { db, storage } from "@/lib/firebase";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
 import { VARIANT_PRESETS } from "@/lib/variants";
-import { StatusBadge, EmptyState, PROTOTYPE_STATUS_STYLES, VARIANT_BADGE_COLORS, ROLE_STYLES } from "@/components/infrastructure";
+import { ConfirmDialog, StatusBadge, EmptyState, PROTOTYPE_STATUS_STYLES, VARIANT_BADGE_COLORS, ROLE_STYLES } from "@/components/infrastructure";
 
 interface Prototyper {
   id: string;
@@ -26,6 +28,7 @@ interface Prototype {
   variant: string;
   url: string;
   fileName: string;
+  fileUrl: string;
   modifiedAt?: { seconds: number };
   createdAt?: { seconds: number };
 }
@@ -36,6 +39,10 @@ export default function PrototypesPage() {
   const [allPrototypes, setAllPrototypes] = useState<Prototype[]>([]);
   const [search, setSearch] = useState("");
   const [creatingStudy, setCreatingStudy] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [confirmState, setConfirmState] = useState<{ message: string; action: () => void } | null>(null);
+  const [showEditId, setShowEditId] = useState<string | null>(null);
 
   // Listen to prototypers
   useEffect(() => {
@@ -136,18 +143,45 @@ export default function PrototypesPage() {
     }
   };
 
+  function getPreviewPath(proto: Prototype): string {
+    if (proto.url) return `/prototype/link/${proto.prototyperId}/${proto.id}`;
+    if (proto.fileName) return `/prototype/uploaded/${proto.prototyperId}/${proto.id}`;
+    return `/prototype?variant=${proto.variant}`;
+  }
+
+  const handleCopyLink = async (proto: Prototype) => {
+    const url = `${window.location.origin}${getPreviewPath(proto)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(proto.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      prompt("Copy this link:", url);
+    }
+  };
+
+  const handleDelete = async (proto: Prototype) => {
+    try {
+      if (proto.fileUrl) {
+        await deleteObject(ref(storage, proto.fileUrl)).catch(() => {});
+      }
+      await deleteDoc(doc(db, "prototypers", proto.prototyperId, "prototypes", proto.id));
+      setToast({ message: `Deleted "${proto.title}"` });
+    } catch (err) {
+      console.error("Failed to delete prototype:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <header className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Link
-            href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            &larr;
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Prototypes</h1>
-        </div>
+        <Link
+          href="/"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-orange-400"
+        >
+          &larr; Dashboard
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">Prototypes</h1>
         <p className="text-sm text-secondary">
           Search all prototypes and review variant configurations.
         </p>
@@ -230,37 +264,46 @@ export default function PrototypesPage() {
                     </p>
                   </div>
                   <div className="ml-4 flex items-center gap-2 flex-shrink-0">
-                    {proto.url ? (
-                      <Link
-                        href={`/prototype/link/${proto.prototyperId}/${proto.id}`}
-                        target="_blank"
-                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                      >
-                        Preview
-                      </Link>
-                    ) : proto.fileName ? (
-                      <Link
-                        href={`/prototype/uploaded/${proto.prototyperId}/${proto.id}`}
-                        target="_blank"
-                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                      >
-                        Preview
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/prototype?variant=${proto.variant}`}
-                        target="_blank"
-                        className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
-                      >
-                        Preview
-                      </Link>
-                    )}
+                    <button
+                      onClick={() => handleCopyLink(proto)}
+                      className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                    >
+                      {copiedId === proto.id ? "Copied!" : "Copy Link"}
+                    </button>
+                    <Link
+                      href={getPreviewPath(proto)}
+                      target="_blank"
+                      className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400"
+                    >
+                      Preview
+                    </Link>
                     <button
                       onClick={() => handleCreateStudy(proto)}
                       disabled={creatingStudy === proto.id}
                       className="rounded-lg border border-edge-strong px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-orange-500 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {creatingStudy === proto.id ? "Creating..." : "Create Study"}
+                    </button>
+                    {proto.fileUrl && (
+                      <a
+                        href={proto.fileUrl}
+                        download={proto.fileName || true}
+                        className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                      >
+                        Download
+                      </a>
+                    )}
+                    <Link
+                      href={`/prototypers/${proto.prototyperId}`}
+                      className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => setConfirmState({ message: `Delete "${proto.title}"?`, action: () => handleDelete(proto) })}
+                      className="rounded-lg px-3 py-1.5 text-xs text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    >
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -269,6 +312,15 @@ export default function PrototypesPage() {
           )}
       </section>
 
+      <ConfirmDialog
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.action()}
+        message={confirmState?.message ?? ""}
+      />
+      {toast && (
+        <Toast message={toast.message} onDismiss={() => setToast(null)} />
+      )}
     </div>
   );
 }

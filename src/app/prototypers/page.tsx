@@ -363,7 +363,7 @@ export default function PrototypersPage() {
                         key={proto.id}
                         className="rounded-lg bg-input px-2.5 py-1.5"
                       >
-                        <p className="text-xs text-secondary">
+                        <p className="text-xs text-secondary truncate">
                           {proto.title}
                         </p>
                         <p className="text-[10px] text-muted">

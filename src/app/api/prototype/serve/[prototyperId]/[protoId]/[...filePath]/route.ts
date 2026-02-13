@@ -132,12 +132,27 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     }
     const body = await res.arrayBuffer();
     return new NextResponse(body, {
-      headers: { "Content-Type": getMimeType(fileName) },
+      headers: { "Content-Type": getMimeType(fileName), "Access-Control-Allow-Origin": "*" },
     });
   } catch (err) {
     console.error("Serve error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
+}
+
+// CORS preflight — sandboxed iframes send Origin: null, and frameworks like
+// Next.js RSC add custom headers (RSC, Next-Router-State-Tree, etc.) that
+// trigger preflight OPTIONS requests.
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +166,7 @@ async function serveHtml(fileUrl: string) {
   }
   const html = await res.text();
   return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: { "Content-Type": "text/html; charset=utf-8", "Access-Control-Allow-Origin": "*" },
   });
 }
 
@@ -273,7 +288,7 @@ if (__c) {
 </html>`;
 
   return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: { "Content-Type": "text/html; charset=utf-8", "Access-Control-Allow-Origin": "*" },
   });
 }
 
@@ -327,7 +342,23 @@ async function serveZipFile(
     zipCache.set(cacheKey, cached);
   }
 
-  const fileData = cached.files.get(requestedPath);
+  let fileData = cached.files.get(requestedPath);
+  let resolvedPath = requestedPath;
+
+  // Extensionless fallback — static-site generators (Next.js, Gatsby, etc.)
+  // export /mail as mail.html or mail/index.html
+  if (!fileData && !requestedPath.includes(".")) {
+    const htmlPath = requestedPath ? requestedPath + ".html" : "index.html";
+    const indexPath = requestedPath ? requestedPath + "/index.html" : "index.html";
+    if (cached.files.has(htmlPath)) {
+      fileData = cached.files.get(htmlPath)!;
+      resolvedPath = htmlPath;
+    } else if (cached.files.has(indexPath)) {
+      fileData = cached.files.get(indexPath)!;
+      resolvedPath = indexPath;
+    }
+  }
+
   if (!fileData) {
     return NextResponse.json(
       { error: "File not found in archive" },
@@ -338,26 +369,79 @@ async function serveZipFile(
   // Sandboxed iframes have origin "null", so all responses need CORS headers
   const cors = { "Access-Control-Allow-Origin": "*" };
 
-  // For HTML files, rewrite root-relative paths (/foo.js) to resolve via
-  // the API serve route, and strip crossorigin attributes (not needed when
-  // assets are served through the same API endpoint).
-  if (isHtml(requestedPath)) {
+  // For HTML files: rewrite root-relative paths, inject a URL interceptor for
+  // JS-initiated requests, and strip crossorigin attributes.
+  if (isHtml(resolvedPath)) {
     const serveBase = `/api/prototype/serve/${prototyperId}/${protoId}`;
+    const escapedPrefix = serveBase
+      .slice(1)
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     let html = new TextDecoder().decode(fileData);
-    // Rewrite src="/..." and href="/..." (but not src="//..." or href="https://...")
+
+    // 1) Rewrite bare root "/" → index.html  (href="/" → href="…/index.html")
     html = html.replace(
-      /((?:src|href|action)\s*=\s*["'])\/(?!\/)/gi,
-      `$1${serveBase}/`
+      /((?:src|href|action)\s*=\s*["'])\/(["'])/gi,
+      `$1${serveBase}/index.html$2`,
     );
-    // Strip crossorigin attributes — assets are now same-origin via API route
-    html = html.replace(/\s+crossorigin(?:\s*=\s*["'][^"']*["'])?/gi, "");
+    // 2) Rewrite remaining root-relative paths, skip already-rewritten ones
+    html = html.replace(
+      new RegExp(
+        `((?:src|href|action)\\s*=\\s*["'])\\/(?!\\/|${escapedPrefix})`,
+        "gi",
+      ),
+      `$1${serveBase}/`,
+    );
+    // 3) Strip crossorigin attributes — assets are now same-origin via API
+    html = html.replace(
+      /\s+crossorigin(?:\s*=\s*["'][^"']*["'])?/gi,
+      "",
+    );
+
+    // 4) Inject URL interceptor for JS-initiated requests (fetch, XHR,
+    //    dynamic script/link creation). Client-side frameworks like Next.js
+    //    (RSC payloads, prefetching) and webpack (code-split chunks) construct
+    //    root-relative URLs in JS that bypass the HTML attribute rewriting.
+    const interceptor =
+      `<script>(function(){` +
+      `var B="${serveBase}";` +
+      `var O=(location.href.match(/^https?:\\/\\/[^\\/]+/)||[""])[0];` +
+      `function R(u){if(typeof u!="string")return u;` +
+      `if(u[0]=="/"&&u[1]!="/"&&u.slice(0,B.length)!=B)return B+u;` +
+      `if(O&&u.slice(0,O.length+1)==O+"/"){var p=u.slice(O.length);` +
+      `if(p.slice(0,B.length)!=B)return O+B+p}return u}` +
+      `var F=window.fetch;window.fetch=function(u,o){` +
+      `if(typeof u=="string")u=R(u);` +
+      `else if(u instanceof Request){try{var n=R(u.url);` +
+      `if(n!=u.url)u=new Request(n,u)}catch(e){}}` +
+      `return F.call(this,u,o)};` +
+      `var X=XMLHttpRequest.prototype.open;` +
+      `XMLHttpRequest.prototype.open=function(){` +
+      `var a=[].slice.call(arguments);` +
+      `if(typeof a[1]=="string")a[1]=R(a[1]);` +
+      `return X.apply(this,a)};` +
+      `var C=document.createElement.bind(document);` +
+      `document.createElement=function(t){` +
+      `var e=C.apply(document,arguments);` +
+      `var l=(typeof t=="string"?t:"").toLowerCase();` +
+      `if(l=="script"){` +
+      `var d=Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype,"src");` +
+      `if(d&&d.set)Object.defineProperty(e,"src",` +
+      `{set:function(v){d.set.call(this,R(v))},get:d.get,configurable:1})}` +
+      `else if(l=="link"){` +
+      `var d2=Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype,"href");` +
+      `if(d2&&d2.set)Object.defineProperty(e,"href",` +
+      `{set:function(v){d2.set.call(this,R(v))},get:d2.get,configurable:1})}` +
+      `return e}})()</script>`;
+
+    html = html.replace(/<head(?:\s[^>]*)?>/, "$&" + interceptor);
+
     return new NextResponse(html, {
       headers: { "Content-Type": "text/html; charset=utf-8", ...cors },
     });
   }
 
   return new NextResponse(Buffer.from(fileData), {
-    headers: { "Content-Type": getMimeType(requestedPath), ...cors },
+    headers: { "Content-Type": getMimeType(resolvedPath), ...cors },
   });
 }
 
