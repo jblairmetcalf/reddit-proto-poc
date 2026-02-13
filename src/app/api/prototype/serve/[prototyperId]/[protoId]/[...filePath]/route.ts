@@ -335,9 +335,12 @@ async function serveZipFile(
     );
   }
 
+  // Sandboxed iframes have origin "null", so all responses need CORS headers
+  const cors = { "Access-Control-Allow-Origin": "*" };
+
   // For HTML files, rewrite root-relative paths (/foo.js) to resolve via
-  // the API serve route. <base> tags don't affect root-relative URLs, so we
-  // rewrite src="/..." and href="/..." to point through the serve endpoint.
+  // the API serve route, and strip crossorigin attributes (not needed when
+  // assets are served through the same API endpoint).
   if (isHtml(requestedPath)) {
     const serveBase = `/api/prototype/serve/${prototyperId}/${protoId}`;
     let html = new TextDecoder().decode(fileData);
@@ -346,13 +349,15 @@ async function serveZipFile(
       /((?:src|href|action)\s*=\s*["'])\/(?!\/)/gi,
       `$1${serveBase}/`
     );
+    // Strip crossorigin attributes — assets are now same-origin via API route
+    html = html.replace(/\s+crossorigin(?:\s*=\s*["'][^"']*["'])?/gi, "");
     return new NextResponse(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: { "Content-Type": "text/html; charset=utf-8", ...cors },
     });
   }
 
   return new NextResponse(Buffer.from(fileData), {
-    headers: { "Content-Type": getMimeType(requestedPath) },
+    headers: { "Content-Type": getMimeType(requestedPath), ...cors },
   });
 }
 
