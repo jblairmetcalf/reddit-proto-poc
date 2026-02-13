@@ -335,16 +335,17 @@ async function serveZipFile(
     );
   }
 
-  // For HTML files, inject a <base> tag so absolute paths (e.g. /bundle.js)
-  // resolve relative to the API serve route instead of the domain root.
+  // For HTML files, rewrite root-relative paths (/foo.js) to resolve via
+  // the API serve route. <base> tags don't affect root-relative URLs, so we
+  // rewrite src="/..." and href="/..." to point through the serve endpoint.
   if (isHtml(requestedPath)) {
-    const baseHref = `/api/prototype/serve/${prototyperId}/${protoId}/`;
+    const serveBase = `/api/prototype/serve/${prototyperId}/${protoId}`;
     let html = new TextDecoder().decode(fileData);
-    if (html.includes("<head>")) {
-      html = html.replace("<head>", `<head><base href="${baseHref}">`);
-    } else if (html.includes("<head ")) {
-      html = html.replace(/<head\s[^>]*>/, (m) => `${m}<base href="${baseHref}">`);
-    }
+    // Rewrite src="/..." and href="/..." (but not src="//..." or href="https://...")
+    html = html.replace(
+      /((?:src|href|action)\s*=\s*["'])\/(?!\/)/gi,
+      `$1${serveBase}/`
+    );
     return new NextResponse(html, {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
